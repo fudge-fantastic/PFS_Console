@@ -1,13 +1,24 @@
-import type { Route } from "./+types/home";
-import { Welcome } from "../welcome/welcome";
+import { Navigate } from 'react-router';
+import { useAuth } from '../hooks/useAuth';
 
-export function meta({}: Route.MetaArgs) {
+export function meta() {
   return [
-    { title: "New React Router App" },
-    { name: "description", content: "Welcome to React Router!" },
+    { title: "PixelForge Studio Admin" },
+    { name: "description", content: "PixelForge Studio Admin Panel" },
   ];
 }
 
 export default function Home() {
-  return <Welcome />;
+  const { isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-lg">Loading...</div>
+      </div>
+    );
+  }
+
+  // Redirect based on authentication status
+  return <Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />;
 }
