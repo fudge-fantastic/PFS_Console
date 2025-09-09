@@ -6,6 +6,7 @@ import type { Product, ProductFilters } from '../types/product';
 interface UseProductsOptions {
   searchTerm?: string;
   categoryFilter?: string;
+  statusFilter?: 'all' | 'active' | 'locked';
 }
 
 interface UseProductsResult {
@@ -39,24 +40,46 @@ export const useProducts = (options: UseProductsOptions = {}): UseProductsResult
         limit,
       };
 
-      // Add category filter
+      // Add category filter to API call
       if (options.categoryFilter && options.categoryFilter !== 'all') {
         filters.category = options.categoryFilter;
       }
 
+      // For status filter, we need to handle it differently:
+      // - 'active' means unlocked products only
+      // - 'locked' means we need all products then filter client-side
+      // - 'all' means all products
+      if (options.statusFilter === 'active') {
+        filters.unlocked_only = true;
+      }
+
       const response = await productService.getProducts(filters);
-      let filteredProducts = response.data;
+      let filteredProducts = response.data ?? [];
 
       // Apply client-side search filter
       if (options.searchTerm?.trim()) {
         const searchLower = options.searchTerm.toLowerCase();
         filteredProducts = filteredProducts.filter(product =>
-          product.title.toLowerCase().includes(searchLower)
+          product.title.toLowerCase().includes(searchLower) ||
+          (product.description && product.description.toLowerCase().includes(searchLower)) ||
+          (product.short_description && product.short_description.toLowerCase().includes(searchLower)) ||
+          product.category_name.toLowerCase().includes(searchLower)
         );
       }
 
+      // Apply client-side status filter for locked products
+      // (active filter is already handled by API)
+      if (options.statusFilter === 'locked') {
+        filteredProducts = filteredProducts.filter(p => !!p.is_locked);
+      }
+
       setProducts(filteredProducts);
-      setTotal(response.total || 0);
+      // For filtered results, we should update the total to reflect the actual filtered count
+      // But for pagination, we need to be careful about the real total from the API
+      const filteredTotal = (options.searchTerm?.trim() || options.statusFilter === 'locked') 
+        ? filteredProducts.length 
+        : (response.total || filteredProducts.length);
+      setTotal(filteredTotal);
       setCurrentPage(page);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch products';
@@ -68,8 +91,10 @@ export const useProducts = (options: UseProductsOptions = {}): UseProductsResult
   };
 
   useEffect(() => {
+    // Reset to page 1 when filters change
+    setCurrentPage(1);
     fetchProducts(1);
-  }, [options.searchTerm, options.categoryFilter]);
+  }, [options.searchTerm, options.categoryFilter, options.statusFilter]);
 
   const refetch = () => {
     fetchProducts(currentPage);

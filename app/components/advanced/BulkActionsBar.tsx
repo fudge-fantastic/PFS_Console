@@ -114,7 +114,7 @@ export const BulkActionsBar: React.FC<BulkActionsBarProps> = ({
 
   if (!hasSelectedItems) {
     return (
-      <div className="flex items-center justify-between py-2 px-4 bg-gray-50 dark:bg-gray-800 rounded-lg border">
+      <div className="flex items-center justify-between py-3 px-4 bg-zinc-50 dark:bg-zinc-900 rounded-lg border">
         <div className="flex items-center space-x-3">
           <Button
             variant="ghost"

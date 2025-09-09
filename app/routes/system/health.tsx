@@ -163,7 +163,7 @@ export default function SystemHealth() {
               {healthData && getStatusIcon(healthData.status)}
             </CardTitle>
             <CardDescription>
-              Current system health and uptime
+              Current system health status
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -183,16 +183,12 @@ export default function SystemHealth() {
                   {getStatusBadge(healthData.status)}
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="font-medium">Uptime:</span>
-                  <span className="text-sm font-mono">
-                    {healthData.uptime ? formatUptime(healthData.uptime) : 'Unknown'}
-                  </span>
+                  <span className="font-medium">Database:</span>
+                  {getStatusBadge(healthData.database || 'unknown')}
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="font-medium">Last Check:</span>
-                  <span className="text-sm text-gray-600">
-                    {new Date(healthData.timestamp).toLocaleString()}
-                  </span>
+                  <span className="font-medium">Upload Service:</span>
+                  {getStatusBadge(healthData.upload_service || 'unknown')}
                 </div>
               </div>
             ) : null}
@@ -215,7 +211,7 @@ export default function SystemHealth() {
                 </div>
               ) : healthData ? (
                 <div className="space-y-2">
-                  {getStatusBadge(healthData.components.api)}
+                  {getStatusBadge(healthData.status)}
                   <p className="text-xs text-muted-foreground">
                     REST API endpoints responding normally
                   </p>
@@ -240,7 +236,7 @@ export default function SystemHealth() {
                 </div>
               ) : healthData ? (
                 <div className="space-y-2">
-                  {getStatusBadge(healthData.components.database)}
+                  {getStatusBadge(healthData.database || 'unknown')}
                   <p className="text-xs text-muted-foreground">
                     Database connections active
                   </p>
@@ -265,7 +261,7 @@ export default function SystemHealth() {
                 </div>
               ) : healthData ? (
                 <div className="space-y-2">
-                  {getStatusBadge(healthData.components.storage)}
+                  {getStatusBadge(healthData.upload_service || 'unknown')}
                   <p className="text-xs text-muted-foreground">
                     File storage accessible
                   </p>

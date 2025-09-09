@@ -11,96 +11,113 @@ import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { Checkbox } from '../ui/checkbox';
 import { Skeleton } from '../ui/skeleton';
-import { MoreHorizontal, Eye, Edit, Lock, Unlock, Trash2, AlertCircle } from 'lucide-react';
+import { Input } from '../ui/input';
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '../ui/select';
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuCheckboxItem,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '../ui/dropdown-menu';
+import { MoreHorizontal, Eye, Edit, Lock, Unlock, Trash2, AlertCircle, Search, Columns3 } from 'lucide-react';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../ui/tooltip';
 import { DataTablePagination } from './DataTablePagination';
 import { BulkActionsBar } from '../advanced/BulkActionsBar';
 import { EditProductDialog } from '../forms/EditProductDialog';
 import { ProductDetailModal } from './ProductDetailModal';
 import { useProducts } from '../../hooks/useProducts';
 import { useNotifications } from '../../contexts/NotificationContext';
+import { productService } from '../../services/product.service';
 import type { Product } from '../../types/product';
 
 interface ProductsTableProps {
   searchTerm?: string;
   categoryFilter?: string;
+  statusFilter?: 'all' | 'active' | 'locked';
+  categories?: string[];
+  onSearchChange?: (v: string) => void;
+  onCategoryChange?: (v: string) => void;
+  onStatusChange?: (v: 'all' | 'active' | 'locked') => void;
 }
 
 export const ProductsTable: React.FC<ProductsTableProps> = ({
-  searchTerm,
-  categoryFilter,
+  searchTerm = '',
+  categoryFilter = 'all',
+  statusFilter = 'all',
+  categories = [],
+  onSearchChange,
+  onCategoryChange,
+  onStatusChange,
 }) => {
-  const { products, isLoading, error, currentPage, totalPages, goToPage } = useProducts({
-    searchTerm,
-    categoryFilter,
-  });
+  const {
+    products,
+    isLoading,
+    error,
+    currentPage,
+    totalPages,
+    goToPage,
+    refetch: refetchProducts
+  } = useProducts({ searchTerm, categoryFilter, statusFilter });
   
   const { success, warning, error: showError } = useNotifications();
-  const [selectedProducts, setSelectedProducts] = useState<number[]>([]);
+  const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [viewingProduct, setViewingProduct] = useState<Product | null>(null);
 
-  const handleSelectAll = () => {
-    if (selectedProducts.length === products.length) {
-      setSelectedProducts([]);
-    } else {
-      setSelectedProducts(products.map(p => p.id));
+  // Column visibility state with localStorage persistence
+  const [columnVisibility, setColumnVisibility] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('products-column-visibility');
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch {
+          // Fall back to defaults if parsing fails
+        }
+      }
     }
-  };
+    return {
+      id: true,
+      product: true,
+      shortDescription: false,
+      description: false,
+      category: true,
+      price: true,
+      rating: true,
+      status: true,
+      actions: true,
+    };
+  });
 
-  const handleSelectProduct = (productId: number) => {
-    setSelectedProducts(prev =>
-      prev.includes(productId)
-        ? prev.filter(id => id !== productId)
-        : [...prev, productId]
-    );
+  // Toggle column visibility and persist to localStorage
+  const toggleColumn = (column: keyof typeof columnVisibility) => {
+    setColumnVisibility((prev: typeof columnVisibility) => {
+      const newVisibility = {
+        ...prev,
+        [column]: !prev[column]
+      };
+      
+      // Persist to localStorage
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('products-column-visibility', JSON.stringify(newVisibility));
+      }
+      
+      return newVisibility;
+    });
   };
-
-  // Define bulk operations
-  const bulkOperations = [
-    {
-      id: 'lock',
-      label: 'Lock Products',
-      icon: <Lock className="mr-2 h-4 w-4" />,
-      action: async (selectedIds: string[]) => {
-        const selectedProductObjects = products.filter(p => selectedIds.includes(p.id.toString()));
-        console.log('Bulk locking:', selectedProductObjects);
-        success(`Locked ${selectedIds.length} products`);
-        setSelectedProducts([]);
-      },
-    },
-    {
-      id: 'unlock',
-      label: 'Unlock Products',
-      icon: <Unlock className="mr-2 h-4 w-4" />,
-      action: async (selectedIds: string[]) => {
-        const selectedProductObjects = products.filter(p => selectedIds.includes(p.id.toString()));
-        console.log('Bulk unlocking:', selectedProductObjects);
-        success(`Unlocked ${selectedIds.length} products`);
-        setSelectedProducts([]);
-      },
-    },
-    {
-      id: 'delete',
-      label: 'Delete Products',
-      icon: <Trash2 className="mr-2 h-4 w-4" />,
-      variant: 'destructive' as const,
-      confirmMessage: 'This action cannot be undone.',
-      action: async (selectedIds: string[]) => {
-        const selectedProductObjects = products.filter(p => selectedIds.includes(p.id.toString()));
-        console.log('Bulk deleting:', selectedProductObjects);
-        success(`Deleted ${selectedIds.length} products successfully`);
-        setSelectedProducts([]);
-      },
-    },
-  ];
 
   const formatPrice = (price: number): string => {
     return new Intl.NumberFormat('en-US', {
@@ -146,9 +163,14 @@ export const ProductsTable: React.FC<ProductsTableProps> = ({
         },
         {
           label: 'Delete',
-          onClick: () => {
-            console.log('Delete product:', product);
-            success('Product deleted successfully');
+          onClick: async () => {
+            try {
+              await productService.deleteProduct(product.id);
+              success('Product deleted successfully');
+              refetchProducts();
+            } catch (err) {
+              showError('Failed to delete product');
+            }
           },
           variant: 'destructive',
         },
@@ -156,8 +178,78 @@ export const ProductsTable: React.FC<ProductsTableProps> = ({
     });
   };
 
-  const selectionState = selectedProducts.length === 0 ? 'none' : 
-                       selectedProducts.length === products.length ? 'all' : 'partial';
+  // Bulk selection helpers
+  const handleSelectAll = () => {
+    if (selectedProducts.length === products.length) {
+      setSelectedProducts([]);
+    } else {
+      setSelectedProducts(products.map((p) => String(p.id)));
+    }
+  };
+
+  const handleSelectProduct = (productId: number) => {
+    const id = String(productId);
+    setSelectedProducts((prev) =>
+      prev.includes(id) ? prev.filter((pid) => pid !== id) : [...prev, id]
+    );
+  };
+
+  const selectionState =
+    selectedProducts.length === 0
+      ? 'none'
+      : selectedProducts.length === products.length
+      ? 'all'
+      : 'partial';
+
+  // Bulk operations for products
+  const productBulkOperations = [
+    {
+      id: 'lock',
+      label: 'Lock Products',
+      icon: <Lock className="h-4 w-4" />,
+      confirmMessage:
+        'Lock selected products? Locked products will be hidden from customers.',
+      action: async (selectedIds: string[]) => {
+        await Promise.all(
+          selectedIds.map((id) => productService.lockProduct(Number(id)))
+        );
+        success(`Locked ${selectedIds.length} products`);
+        setSelectedProducts([]);
+        refetchProducts();
+      },
+    },
+    {
+      id: 'unlock',
+      label: 'Unlock Products',
+      icon: <Unlock className="h-4 w-4" />,
+      action: async (selectedIds: string[]) => {
+        await Promise.all(
+          selectedIds.map((id) => productService.unlockProduct(Number(id)))
+        );
+        success(`Unlocked ${selectedIds.length} products`);
+        setSelectedProducts([]);
+        refetchProducts();
+      },
+    },
+    {
+      id: 'delete',
+      label: 'Delete Products',
+      icon: <Trash2 className="h-4 w-4" />,
+      variant: 'destructive' as const,
+      confirmMessage:
+        'Permanently delete the selected products? This cannot be undone.',
+      action: async (selectedIds: string[]) => {
+        await Promise.all(
+          selectedIds.map((id) => productService.deleteProduct(Number(id)))
+        );
+        success(`Deleted ${selectedIds.length} products`);
+        setSelectedProducts([]);
+        refetchProducts();
+      },
+    },
+  ];
+
+
 
   if (error) {
     return (
@@ -171,86 +263,255 @@ export const ProductsTable: React.FC<ProductsTableProps> = ({
     );
   }
 
+  // Derived counts (client-side quick stats like the Tasks demo)
+  const totalCount = products.length;
+  const activeCount = products.filter(p => !p.is_locked).length;
+  const lockedCount = products.filter(p => p.is_locked).length;
+
   return (
     <div className="space-y-4">
       {/* Bulk Actions Bar */}
       {!isLoading && products.length > 0 && (
         <BulkActionsBar
-          selectedItems={selectedProducts.map(String)}
+          selectedItems={selectedProducts}
           totalItems={products.length}
-          onSelectAll={() => setSelectedProducts(products.map(p => p.id))}
+          onSelectAll={() => setSelectedProducts(products.map((p) => String(p.id)))}
           onDeselectAll={() => setSelectedProducts([])}
-          operations={bulkOperations}
+          operations={productBulkOperations}
           itemType="products"
         />
       )}
 
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
+      {/* Toolbar similar to shadcn Tasks: search + status filter + category filter + column selector */}
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <span>Showing</span>
+          <span className="font-medium text-foreground">{totalCount}</span>
+          <span>products</span>
+          <span className="hidden sm:inline">·</span>
+          <div className="hidden sm:flex items-center gap-2">
+            <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">{activeCount} active</span>
+            <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800">{lockedCount} locked</span>
+          </div>
+        </div>
+        <div className="flex flex-1 md:flex-none items-center gap-2">
+          <div className="relative w-full md:w-72">
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              value={searchTerm}
+              onChange={(e) => onSearchChange?.(e.target.value)}
+              placeholder="Search products, descriptions..."
+              className="pl-9 h-9"
+            />
+          </div>
+          <Select value={statusFilter} onValueChange={(v: any) => onStatusChange?.(v)}>
+            <SelectTrigger className="h-9 w-[140px]">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All statuses</SelectItem>
+              <SelectItem value="active">Active</SelectItem>
+              <SelectItem value="locked">Locked</SelectItem>
+            </SelectContent>
+          </Select>
+          {onCategoryChange && (
+            <Select value={categoryFilter} onValueChange={(v) => onCategoryChange?.(v)}>
+              <SelectTrigger className="h-9 w-[180px]">
+                <SelectValue placeholder="Category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All categories</SelectItem>
+                {categories.map((c) => (
+                  <SelectItem key={c} value={c}>{c}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+          
+          {/* Column Visibility Selector */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="h-9" size="sm">
+                <Columns3 className="h-4 w-4 mr-1" />
+                Columns
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuLabel>Show Columns</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuCheckboxItem
+                checked={columnVisibility.id}
+                onCheckedChange={() => toggleColumn('id')}
+              >
+                ID
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={columnVisibility.product}
+                onCheckedChange={() => toggleColumn('product')}
+              >
+                Product
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={columnVisibility.shortDescription}
+                onCheckedChange={() => toggleColumn('shortDescription')}
+              >
+                Short Description
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={columnVisibility.description}
+                onCheckedChange={() => toggleColumn('description')}
+              >
+                Description
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={columnVisibility.category}
+                onCheckedChange={() => toggleColumn('category')}
+              >
+                Category
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={columnVisibility.price}
+                onCheckedChange={() => toggleColumn('price')}
+              >
+                Price
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={columnVisibility.rating}
+                onCheckedChange={() => toggleColumn('rating')}
+              >
+                Rating
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={columnVisibility.status}
+                onCheckedChange={() => toggleColumn('status')}
+              >
+                Status
+              </DropdownMenuCheckboxItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {(searchTerm || categoryFilter !== 'all' || statusFilter !== 'all') && (
+            <Button
+              variant="outline"
+              className="h-9"
+              onClick={() => {
+                onSearchChange?.('');
+                onCategoryChange?.('all');
+                onStatusChange?.('all');
+              }}
+            >
+              Reset
+            </Button>
+          )}
+        </div>
+      </div>
+
+
+  <div className="rounded-2xl border bg-zinc-50 dark:bg-zinc-950 shadow-md dark:shadow-none overflow-x-auto">
+        <Table className="rounded-2xl min-w-full text-[15px]">
+          <TableHeader className="sticky top-0 z-10 bg-zinc-100 dark:bg-zinc-900">
+            <TableRow className="">
+              {/* Bulk selection checkbox */}
               {!isLoading && products.length > 0 && (
-                <TableHead className="w-12">
+                <TableHead className="w-12 px-4 py-3 rounded-tl-2xl">{/* leftmost rounded */}
                   <Checkbox
-                    checked={selectionState === 'all'}
+                    checked={
+                      selectionState === 'all'
+                        ? true
+                        : selectionState === 'partial'
+                        ? 'indeterminate'
+                        : false
+                    }
                     onCheckedChange={handleSelectAll}
                   />
                 </TableHead>
               )}
-              <TableHead className="w-12">#</TableHead>
-              <TableHead>Product</TableHead>
-              <TableHead>Category</TableHead>
-              <TableHead>Price</TableHead>
-              <TableHead>Rating</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              {columnVisibility.id && <TableHead className="w-auto px-5 py-3 font-bold text-zinc-700 dark:text-zinc-200 text-base tracking-wide">#</TableHead>}
+              {columnVisibility.product && <TableHead className="px-5 py-3 font-bold text-zinc-700 dark:text-zinc-200 text-base tracking-wide">Product</TableHead>}
+              {columnVisibility.shortDescription && <TableHead className="px-5 py-3 font-bold text-zinc-700 dark:text-zinc-200 text-base tracking-wide">Short Description</TableHead>}
+              {columnVisibility.description && <TableHead className="px-5 py-3 font-bold text-zinc-700 dark:text-zinc-200 text-base tracking-wide">Description</TableHead>}
+              {columnVisibility.category && <TableHead className="px-5 py-3 font-bold text-zinc-700 dark:text-zinc-200 text-base tracking-wide">Category</TableHead>}
+              {columnVisibility.price && <TableHead className="px-5 py-3 font-bold text-zinc-700 dark:text-zinc-200 text-base tracking-wide">Price</TableHead>}
+              {columnVisibility.rating && <TableHead className="px-5 py-3 font-bold text-zinc-700 dark:text-zinc-200 text-base tracking-wide">Rating</TableHead>}
+              {columnVisibility.status && <TableHead className="px-5 py-3 font-bold text-zinc-700 dark:text-zinc-200 text-base tracking-wide">Status</TableHead>}
+              {columnVisibility.actions && <TableHead className="text-right px-5 py-3 font-bold text-zinc-700 dark:text-zinc-200 text-base tracking-wide rounded-tr-2xl">Actions</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
               // Loading skeletons
               Array.from({ length: 6 }).map((_, i) => (
-                <TableRow key={i}>
-                  <TableCell>
+                <TableRow key={i} className={i % 2 === 0 ? 'bg-zinc-50 dark:bg-zinc-950/80' : 'bg-white dark:bg-zinc-900/80'}>
+                  <TableCell className="px-5 py-4 border-b border-zinc-200 dark:border-zinc-800">
                     <Skeleton className="h-4 w-4 rounded" />
                   </TableCell>
-                  <TableCell>
-                    <Skeleton className="h-4 w-8" />
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center space-x-3">
-                      <Skeleton className="h-10 w-10 rounded" />
-                      <div className="space-y-1">
-                        <Skeleton className="h-4 w-32" />
-                        <Skeleton className="h-3 w-20" />
+                  {columnVisibility.id && (
+                    <TableCell className="px-5 py-4 border-b border-zinc-200 dark:border-zinc-800">
+                      <Skeleton className="h-4 w-8" />
+                    </TableCell>
+                  )}
+                  {columnVisibility.product && (
+                    <TableCell className="px-5 py-4 border-b border-zinc-200 dark:border-zinc-800">
+                      <div className="flex items-center space-x-3">
+                        <Skeleton className="h-10 w-10 rounded-xl" />
+                        <div className="space-y-1">
+                          <Skeleton className="h-4 w-32" />
+                          <Skeleton className="h-3 w-20" />
+                        </div>
                       </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Skeleton className="h-5 w-20 rounded-full" />
-                  </TableCell>
-                  <TableCell>
-                    <Skeleton className="h-4 w-16" />
-                  </TableCell>
-                  <TableCell>
-                    <Skeleton className="h-4 w-12" />
-                  </TableCell>
-                  <TableCell>
-                    <Skeleton className="h-5 w-16 rounded-full" />
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Skeleton className="h-8 w-8 rounded ml-auto" />
-                  </TableCell>
+                    </TableCell>
+                  )}
+                  {columnVisibility.shortDescription && (
+                    <TableCell className="px-5 py-4 border-b border-zinc-200 dark:border-zinc-800">
+                      <Skeleton className="h-4 w-40" />
+                    </TableCell>
+                  )}
+                  {columnVisibility.description && (
+                    <TableCell className="px-5 py-4 border-b border-zinc-200 dark:border-zinc-800">
+                      <Skeleton className="h-4 w-60" />
+                    </TableCell>
+                  )}
+                  {columnVisibility.category && (
+                    <TableCell className="px-5 py-4 border-b border-zinc-200 dark:border-zinc-800">
+                      <Skeleton className="h-5 w-20 rounded-full" />
+                    </TableCell>
+                  )}
+                  {columnVisibility.price && (
+                    <TableCell className="px-5 py-4 border-b border-zinc-200 dark:border-zinc-800">
+                      <Skeleton className="h-4 w-16" />
+                    </TableCell>
+                  )}
+                  {columnVisibility.rating && (
+                    <TableCell className="px-5 py-4 border-b border-gray-200 dark:border-zinc-800">
+                      <Skeleton className="h-4 w-12" />
+                    </TableCell>
+                  )}
+                  {columnVisibility.status && (
+                    <TableCell className="px-4 py-3">
+                      <Skeleton className="h-5 w-16 rounded-full" />
+                    </TableCell>
+                  )}
+                  {columnVisibility.actions && (
+                    <TableCell className="text-right px-5 py-4 border-b border-zinc-200 dark:border-zinc-800">
+                      <Skeleton className="h-8 w-8 rounded ml-auto" />
+                    </TableCell>
+                  )}
                 </TableRow>
               ))
-            ) : products.length === 0 ? (
+      ) : products.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-8">
+                <TableCell 
+                  colSpan={
+                    1 + // checkbox column
+                    Object.values(columnVisibility).filter(Boolean).length
+                  } 
+                  className="text-center py-8"
+                >
                   <div className="flex flex-col items-center">
-                    <AlertCircle className="h-8 w-8 text-gray-400 mb-2" />
-                    <p className="text-sm text-gray-500">No products found</p>
+                    <AlertCircle className="h-8 w-8 mb-2" />
+                    <p className="text-sm">No products match your filters</p>
                     {(searchTerm || categoryFilter !== 'all') && (
-                      <p className="text-xs text-gray-400 mt-1">
+                      <p className="text-xs mt-1">
                         Try adjusting your search or filters
                       </p>
                     )}
@@ -259,117 +520,174 @@ export const ProductsTable: React.FC<ProductsTableProps> = ({
               </TableRow>
             ) : (
               products.map((product, index) => (
-                <TableRow key={product.id}>
-                  <TableCell>
+                <TableRow
+                  key={product.id}
+                  className={
+                    `${index % 2 === 0 ? 'bg-zinc-50 dark:bg-zinc-950/80' : 'bg-white dark:bg-zinc-900/80'} ` +
+                    'group border-b border-zinc-200 dark:border-zinc-800'
+                  }
+                >
+                  {/* Bulk selection checkbox per row */}
+                  <TableCell className="px-5 py-4 rounded-l-xl border-b border-zinc-200 dark:border-zinc-800">
                     <Checkbox
-                      checked={selectedProducts.includes(product.id)}
+                      checked={selectedProducts.includes(String(product.id))}
                       onCheckedChange={() => handleSelectProduct(product.id)}
                     />
                   </TableCell>
-                  <TableCell className="font-medium">
-                    {(currentPage - 1) * 12 + index + 1}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center space-x-3">
-                      <div className="h-10 w-10 rounded bg-gray-100 flex items-center justify-center">
-                        {product.images && product.images.length > 0 ? (
-                          <img 
-                            src={product.images[0]} 
-                            alt={product.title}
-                            className="h-10 w-10 rounded object-cover"
-                          />
-                        ) : (
-                          <div className="text-xs text-gray-500">IMG</div>
-                        )}
-                      </div>
-                      <div>
-                        <div className="font-medium">{product.title}</div>
-                        <div className="text-sm text-gray-500">ID: {product.id}</div>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge 
-                      variant="secondary"
-                      className={getCategoryColor(product.category_name)}
-                    >
-                      {product.category_name}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="font-medium">
-                    {formatPrice(product.price)}
-                  </TableCell>
-                  <TableCell>
-                    {product.rating ? (
-                      <div className="flex items-center">
-                        <span className="text-sm">{product.rating.toFixed(1)}</span>
-                        <span className="text-yellow-400 ml-1">★</span>
-                      </div>
-                    ) : (
-                      <span className="text-gray-400 text-sm">No rating</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={product.is_locked ? 'destructive' : 'default'}
-                      className={product.is_locked ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}
-                    >
-                      {product.is_locked ? (
-                        <>
-                          <Lock className="w-3 h-3 mr-1" />
-                          Locked
-                        </>
-                      ) : (
-                        <>
-                          <Unlock className="w-3 h-3 mr-1" />
-                          Active
-                        </>
-                      )}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
-                          <span className="sr-only">Open menu</span>
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem onClick={() => handleViewProduct(product)}>
-                          <Eye className="mr-2 h-4 w-4" />
-                          View Details
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleEditProduct(product)}>
-                          <Edit className="mr-2 h-4 w-4" />
-                          Edit Product
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => handleToggleLock(product)}>
-                          {product.is_locked ? (
-                            <>
-                              <Unlock className="mr-2 h-4 w-4" />
-                              Unlock Product
-                            </>
+                  {columnVisibility.id && (
+                    <TableCell className="font-medium px-5 py-4 border-b border-zinc-200 dark:border-zinc-800">
+                      {(currentPage - 1) * 12 + index + 1}
+                    </TableCell>
+                  )}
+                  {columnVisibility.product && (
+                    <TableCell className="px-5 py-4 border-b border-zinc-200 dark:border-zinc-800">
+                      <div className="flex items-center gap-3">
+                        <div className="h-12 w-12 rounded-xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center overflow-hidden border border-zinc-200 dark:border-zinc-700 shadow-sm">
+                          {product.images && product.images.length > 0 ? (
+                            <img 
+                              src={product.images[0]} 
+                              alt={product.title}
+                              className="h-12 w-12 object-cover rounded-xl"
+                            />
                           ) : (
-                            <>
-                              <Lock className="mr-2 h-4 w-4" />
-                              Lock Product
-                            </>
+                            <span className="text-xs">IMG</span>
                           )}
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem 
-                          onClick={() => handleDeleteProduct(product)}
-                          className="text-red-600"
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Delete Product
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
+                        </div>
+                        <div>
+                          <div className="font-semibold text-base group-hover:text-green-700 dark:group-hover:text-green-300 transition-colors">{product.title}</div>
+                          <div className="text-xs">ID: {product.id}</div>
+                        </div>
+                      </div>
+                    </TableCell>
+                  )}
+                  {columnVisibility.shortDescription && (
+                    <TableCell className="max-w-xs px-5 py-4 border-b border-zinc-200 dark:border-zinc-800">
+                      {product.short_description ? (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="text-sm truncate cursor-help">
+                              {product.short_description}
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-sm">
+                            <p>{product.short_description}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      ) : (
+                        <span className="italic text-sm">No short description</span>
+                      )}
+                    </TableCell>
+                  )}
+                  {columnVisibility.description && (
+                    <TableCell className="max-w-md px-5 py-4 border-b border-zinc-200 dark:border-zinc-800">
+                      {product.description ? (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="text-sm line-clamp-2 cursor-help">
+                              {product.description}
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-md">
+                            <p className="whitespace-pre-wrap">{product.description}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      ) : (
+                        <span className="italic text-sm">No description</span>
+                      )}
+                    </TableCell>
+                  )}
+                  {columnVisibility.category && (
+                    <TableCell className="px-5 py-4 border-b border-zinc-200 dark:border-zinc-800">
+                      <Badge 
+                        variant="secondary"
+                        className={getCategoryColor(product.category_name) + ' rounded-full px-3 py-1 text-xs font-semibold'}
+                      >
+                        {product.category_name}
+                      </Badge>
+                    </TableCell>
+                  )}
+                  {columnVisibility.price && (
+                    <TableCell className="font-medium px-5 py-4 border-b border-zinc-200 dark:border-zinc-800">
+                      {formatPrice(product.price)}
+                    </TableCell>
+                  )}
+                  {columnVisibility.rating && (
+                    <TableCell className="px-5 py-4 border-b border-zinc-200 dark:border-zinc-800">
+                      {product.rating ? (
+                        <div className="flex items-center">
+                          <span className="text-sm font-semibold text-yellow-600 dark:text-yellow-400">{product.rating.toFixed(1)}</span>
+                          <span className="text-yellow-400 ml-1">★</span>
+                        </div>
+                      ) : (
+                        <span className="text-sm">No rating</span>
+                      )}
+                    </TableCell>
+                  )}
+                  {columnVisibility.status && (
+                    <TableCell className="px-5 py-4 border-b border-zinc-200 dark:border-zinc-800">
+                      <Badge
+                        variant={product.is_locked ? 'destructive' : 'default'}
+                        className={product.is_locked ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}
+                      >
+                        {product.is_locked ? (
+                          <>
+                            <Lock className="w-3 h-3 mr-1" />
+                            Locked
+                          </>
+                        ) : (
+                          <>
+                            <Unlock className="w-3 h-3 mr-1" />
+                            Active
+                          </>
+                        )}
+                      </Badge>
+                    </TableCell>
+                  )}
+                  {columnVisibility.actions && (
+                    <TableCell className="text-right px-5 py-4 border-b border-zinc-200 dark:border-zinc-800 rounded-r-xl">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" className="h-8 w-8 p-0">
+                            <span className="sr-only">Open menu</span>
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                          <DropdownMenuItem onClick={() => handleViewProduct(product)}>
+                            <Eye className="mr-2 h-4 w-4" />
+                            View Details
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleEditProduct(product)}>
+                            <Edit className="mr-2 h-4 w-4" />
+                            Edit Product
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => handleToggleLock(product)}>
+                            {product.is_locked ? (
+                              <>
+                                <Unlock className="mr-2 h-4 w-4" />
+                                Unlock Product
+                              </>
+                            ) : (
+                              <>
+                                <Lock className="mr-2 h-4 w-4" />
+                                Lock Product
+                              </>
+                            )}
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem 
+                            onClick={() => handleDeleteProduct(product)}
+                            className="text-red-600"
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete Product
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  )}
                 </TableRow>
               ))
             )}

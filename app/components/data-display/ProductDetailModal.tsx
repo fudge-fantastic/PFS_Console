@@ -63,7 +63,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
       case 'Retro Prints':
         return 'bg-purple-100 text-purple-800';
       default:
-        return 'bg-gray-100 text-gray-800';
+  return 'bg-zinc-100 text-zinc-800';
     }
   };
 
@@ -127,10 +127,10 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                     <div className="flex items-center">
                       <span className="text-xl font-semibold">{product.rating.toFixed(1)}</span>
                       <Star className="ml-1 h-5 w-5 fill-yellow-400 text-yellow-400" />
-                      <span className="ml-2 text-sm text-gray-500">out of 5</span>
+                      <span className="ml-2 text-sm">out of 5</span>
                     </div>
                   ) : (
-                    <span className="text-gray-400">No rating yet</span>
+                    <span>No rating yet</span>
                   )}
                 </CardContent>
               </Card>
@@ -175,7 +175,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                 <CardContent className="pt-0">
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                     {product.images.map((image, index) => (
-                      <div key={index} className="aspect-square bg-gray-100 rounded-lg overflow-hidden">
+                      <div key={index} className="aspect-square bg-zinc-100 rounded-lg overflow-hidden">
                         <img 
                           src={image} 
                           alt={`${product.title} - Image ${index + 1}`}
@@ -198,7 +198,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="pt-0">
-                  <p className="text-gray-700 leading-relaxed text-sm">
+                  <p className="leading-relaxed text-sm">
                     {product.short_description}
                   </p>
                 </CardContent>
@@ -208,15 +208,15 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
             {/* Full Description */}
             {product.description && (
               <Card>
-                <CardHeader className="pb-2">
+                <CardHeader>
                   <CardTitle className="text-base flex items-center">
                     <FileText className="mr-2 h-4 w-4" />
                     Full Description
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="pt-0">
+                <CardContent>
                   <div className="prose prose-sm max-w-none">
-                    <p className="text-gray-700 leading-relaxed whitespace-pre-wrap text-sm">
+                    <p className="leading-relaxed whitespace-pre-wrap text-sm">
                       {product.description}
                     </p>
                   </div>
@@ -238,14 +238,14 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
               <CardContent className="pt-0 space-y-3">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div>
-                    <dt className="text-xs font-medium text-gray-500 mb-1">Product ID</dt>
-                    <dd className="text-xs font-mono bg-gray-100 px-2 py-1 rounded">
+                    <dt className="text-xs font-medium mb-1">Product ID</dt>
+                    <dd className="text-xs font-mono bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded">
                       #{product.id}
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-xs font-medium text-gray-500 mb-1">Category ID</dt>
-                    <dd className="text-xs font-mono bg-gray-100 px-2 py-1 rounded">
+                    <dt className="text-xs font-medium mb-1">Category ID</dt>
+                    <dd className="text-xs font-mono bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded">
                       #{product.category_id}
                     </dd>
                   </div>
@@ -253,18 +253,18 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div>
-                    <dt className="text-xs font-medium text-gray-500 mb-1">Created Date</dt>
+                    <dt className="text-xs font-medium mb-1">Created Date</dt>
                     <dd className="text-xs">{formatDate(product.created_at)}</dd>
                   </div>
                   <div>
-                    <dt className="text-xs font-medium text-gray-500 mb-1">Last Updated</dt>
+                    <dt className="text-xs font-medium mb-1">Last Updated</dt>
                     <dd className="text-xs">{formatDate(product.updated_at)}</dd>
                   </div>
                 </div>
 
                 {product.images && (
                   <div>
-                    <dt className="text-xs font-medium text-gray-500 mb-1">Image Count</dt>
+                    <dt className="text-xs font-medium mb-1">Image Count</dt>
                     <dd className="text-xs">
                       {product.images.length} image{product.images.length !== 1 ? 's' : ''}
                     </dd>

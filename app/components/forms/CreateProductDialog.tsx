@@ -322,7 +322,7 @@ export const CreateProductDialog: React.FC<CreateProductDialogProps> = ({
                 Cancel
               </Button>
               <Button type="submit" disabled={isSubmitting || isLoadingCategories}>
-                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin cursor-not-allowed" />}
                 Create Product
               </Button>
             </DialogFooter>

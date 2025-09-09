@@ -51,15 +51,16 @@ export const UsersTable: React.FC<UsersTableProps> = ({
     if (selectedUsers.length === users.length) {
       setSelectedUsers([]);
     } else {
-      setSelectedUsers(users.map(u => u.id));
+      setSelectedUsers(users.map(u => String(u.id)));
     }
   };
 
-  const handleSelectUser = (userId: string) => {
+  const handleSelectUser = (userId: string | number) => {
+    const id = String(userId);
     setSelectedUsers(prev =>
-      prev.includes(userId)
-        ? prev.filter(id => id !== userId)
-        : [...prev, userId]
+      prev.includes(id)
+        ? prev.filter(x => x !== id)
+        : [...prev, id]
     );
   };
 
@@ -70,7 +71,7 @@ export const UsersTable: React.FC<UsersTableProps> = ({
       label: 'Activate Users',
       icon: <UserCheck className="mr-2 h-4 w-4" />,
       action: async (selectedIds: string[]) => {
-        const selectedUserObjects = users.filter(u => selectedIds.includes(u.id));
+  const selectedUserObjects = users.filter(u => selectedIds.includes(String(u.id)));
         console.log('Bulk activating:', selectedUserObjects);
         success(`Activated ${selectedIds.length} users`);
         setSelectedUsers([]);
@@ -81,7 +82,7 @@ export const UsersTable: React.FC<UsersTableProps> = ({
       label: 'Deactivate Users',
       icon: <UserX className="mr-2 h-4 w-4" />,
       action: async (selectedIds: string[]) => {
-        const selectedUserObjects = users.filter(u => selectedIds.includes(u.id));
+  const selectedUserObjects = users.filter(u => selectedIds.includes(String(u.id)));
         console.log('Bulk deactivating:', selectedUserObjects);
         success(`Deactivated ${selectedIds.length} users`);
         setSelectedUsers([]);
@@ -94,7 +95,7 @@ export const UsersTable: React.FC<UsersTableProps> = ({
       variant: 'destructive' as const,
       confirmMessage: 'This action cannot be undone.',
       action: async (selectedIds: string[]) => {
-        const selectedUserObjects = users.filter(u => selectedIds.includes(u.id));
+  const selectedUserObjects = users.filter(u => selectedIds.includes(String(u.id)));
         console.log('Bulk deleting:', selectedUserObjects);
         success(`Deleted ${selectedIds.length} users successfully`);
         setSelectedUsers([]);
@@ -147,7 +148,7 @@ export const UsersTable: React.FC<UsersTableProps> = ({
         <BulkActionsBar
           selectedItems={selectedUsers}
           totalItems={users.length}
-          onSelectAll={() => setSelectedUsers(users.map(u => u.id))}
+          onSelectAll={() => setSelectedUsers(users.map(u => String(u.id)))}
           onDeselectAll={() => setSelectedUsers([])}
           operations={bulkOperations}
           itemType="users"
@@ -224,7 +225,7 @@ export const UsersTable: React.FC<UsersTableProps> = ({
                 <TableRow key={user.id}>
                   <TableCell>
                     <Checkbox
-                      checked={selectedUsers.includes(user.id)}
+                      checked={selectedUsers.includes(String(user.id))}
                       onCheckedChange={() => handleSelectUser(user.id)}
                     />
                   </TableCell>
@@ -248,10 +249,10 @@ export const UsersTable: React.FC<UsersTableProps> = ({
                   </TableCell>
                   <TableCell>
                     <Badge
-                      variant={user.role === 'admin' ? 'default' : 'secondary'}
-                      className={user.role === 'admin' ? 'bg-purple-100 text-purple-800' : ''}
+                      variant={user.role === 'ADMIN' ? 'default' : 'secondary'}
+                      className={user.role === 'ADMIN' ? 'bg-purple-100 text-purple-800' : ''}
                     >
-                      {user.role === 'admin' && (
+                      {user.role === 'ADMIN' && (
                         <Shield className="w-3 h-3 mr-1" />
                       )}
                       {user.role}
@@ -277,10 +278,10 @@ export const UsersTable: React.FC<UsersTableProps> = ({
                         <DropdownMenuSeparator />
                         <DropdownMenuItem 
                           onClick={() => handlePromoteUser(user)}
-                          disabled={user.role === 'admin'}
+                          disabled={user.role === 'ADMIN'}
                         >
                           <UserCheck className="mr-2 h-4 w-4" />
-                          {user.role === 'admin' ? 'Already Admin' : 'Promote to Admin'}
+                          {user.role === 'ADMIN' ? 'Already Admin' : 'Promote to Admin'}
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>

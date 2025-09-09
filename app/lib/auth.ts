@@ -9,9 +9,9 @@ export interface DecodedToken {
 }
 
 export interface AuthUser {
-  id: string;
+  id: number;
   email: string;
-  role: 'admin' | 'user';
+  role: 'USER' | 'ADMIN';
 }
 
 // Token management
@@ -73,7 +73,7 @@ export const isAuthenticated = (): boolean => {
 // Check if user is admin
 export const isAdmin = (): boolean => {
   const user = userStorage.get();
-  return user?.role === 'admin';
+  return user?.role === 'ADMIN';
 };
 
 // Get current user from token
@@ -87,8 +87,8 @@ export const getCurrentUser = (): AuthUser | null => {
   if (!decoded) return null;
   
   return {
-    id: decoded.sub,
+  id: Number(decoded.sub),
     email: decoded.email,
-    role: (decoded.role === 'admin' ? 'admin' : 'user') as 'admin' | 'user',
+  role: (decoded.role === 'ADMIN' ? 'ADMIN' : 'USER') as 'USER' | 'ADMIN',
   };
 };
