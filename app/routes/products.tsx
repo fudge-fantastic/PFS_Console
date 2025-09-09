@@ -1,8 +1,7 @@
 import { Navigate } from 'react-router';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { AdminLayout } from '../components/layout/AdminLayout';
-import { Breadcrumb } from '../components/layout/Breadcrumb';
 import { ProductsTable } from '../components/data-display/ProductsTable';
 import { CreateProductDialog } from '../components/forms/CreateProductDialog';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
@@ -10,12 +9,34 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Package, Search, Filter, RefreshCw, Plus } from 'lucide-react';
+import { productService } from '../services/product.service';
+import { toast } from 'sonner';
 
 export default function ProductsPage() {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [isLoadingCategories, setIsLoadingCategories] = useState(true);
+
+  // Fetch categories on component mount
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  const fetchCategories = async () => {
+    try {
+      setIsLoadingCategories(true);
+      const fetchedCategories = await productService.getCategories();
+      setCategories(fetchedCategories);
+    } catch (error) {
+      console.error('Failed to fetch categories:', error);
+      toast.error('Failed to load categories');
+    } finally {
+      setIsLoadingCategories(false);
+    }
+  };
 
   if (authLoading) {
     return (
@@ -32,23 +53,20 @@ export default function ProductsPage() {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        {/* Breadcrumb */}
-        <Breadcrumb />
-
         {/* Page Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center">
+            <h1 className="text-2xl font-bold flex items-center">
               <Package className="mr-3 h-6 w-6" />
               Product Management
             </h1>
-            <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+            <p className="mt-1 text-sm text-muted-foreground">
               Manage your product catalog and inventory
             </p>
           </div>
           
           <div className="flex space-x-3">
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" onClick={fetchCategories}>
               <RefreshCw className="mr-2 h-4 w-4" />
               Refresh
             </Button>
@@ -83,15 +101,17 @@ export default function ProductsPage() {
               {/* Category Filter */}
               <div className="w-full sm:w-48">
                 <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                  <SelectTrigger>
+                  <SelectTrigger disabled={isLoadingCategories}>
                     <Filter className="mr-2 h-4 w-4" />
-                    <SelectValue placeholder="Filter by category" />
+                    <SelectValue placeholder={isLoadingCategories ? "Loading..." : "Filter by category"} />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Categories</SelectItem>
-                    <SelectItem value="Photo Magnets">Photo Magnets</SelectItem>
-                    <SelectItem value="Fridge Magnets">Fridge Magnets</SelectItem>
-                    <SelectItem value="Retro Prints">Retro Prints</SelectItem>
+                    {categories.map((category) => (
+                      <SelectItem key={category} value={category}>
+                        {category}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>

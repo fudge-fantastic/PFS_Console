@@ -36,7 +36,7 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl text-center">
@@ -81,7 +81,7 @@ export default function Login() {
             </Button>
           </form>
           
-          <div className="mt-6 text-sm text-gray-600 dark:text-gray-400">
+          <div className="mt-6 text-sm text-muted-foreground">
             <p className="text-center">Default Admin Credentials:</p>
             <p className="text-center">Email: admin@pfs.in</p>
             <p className="text-center">Password: admin1234</p>

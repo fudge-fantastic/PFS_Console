@@ -2,7 +2,6 @@ import { Navigate } from 'react-router';
 import { useAuth } from '../hooks/useAuth';
 import { useDashboard } from '../hooks/useDashboard';
 import { AdminLayout } from '../components/layout/AdminLayout';
-import { Breadcrumb } from '../components/layout/Breadcrumb';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
@@ -68,15 +67,12 @@ export default function Dashboard() {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        {/* Breadcrumb */}
-        <Breadcrumb />
-
         {/* Welcome section */}
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+          <h1 className="text-2xl font-bold">
             Welcome back, {user?.email}!
           </h1>
-          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+          <p className="mt-1 text-sm text-muted-foreground">
             Here's what's happening with your PixelForge Studio today.
           </p>
         </div>

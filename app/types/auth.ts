@@ -1,7 +1,7 @@
 export interface AuthUser {
-  id: string;
+  id: number;
   email: string;
-  role: 'admin' | 'user';
+  role: 'USER' | 'ADMIN';
   created_at?: string;
   updated_at?: string;
 }
@@ -15,6 +15,7 @@ export interface LoginResponse {
   success: boolean;
   data: {
     access_token: string;
+    token_type: string;
     user: AuthUser;
   };
   message?: string;
@@ -28,6 +29,8 @@ export interface RegisterRequest {
 export interface RegisterResponse {
   success: boolean;
   data: {
+    access_token: string;
+    token_type: string;
     user: AuthUser;
   };
   message?: string;

@@ -33,13 +33,16 @@ import { Badge } from '../ui/badge';
 import { toast } from 'sonner';
 import { Loader2, Upload, X, Image as ImageIcon } from 'lucide-react';
 import type { Product } from '../../types/product';
+import { productService } from '../../services/product.service';
+import type { UpdateProductRequest, Category } from '../../types/product';
 
 const editProductFormSchema = z.object({
-  title: z.string().min(1, 'Product title is required').max(100, 'Title too long'),
-  price: z.number().min(0.01, 'Price must be greater than 0'),
-  category: z.enum(['Photo Magnets', 'Fridge Magnets', 'Retro Prints']),
-  rating: z.number().min(0).max(5).optional(),
+  title: z.string().min(1, 'Product title is required').max(150, 'Title too long'),
   description: z.string().optional(),
+  short_description: z.string().optional(),
+  price: z.number().min(0.01, 'Price must be greater than 0'),
+  category_id: z.number().min(1, 'Category is required'),
+  rating: z.number().min(0).max(5).optional(),
 });
 
 type EditProductFormData = z.infer<typeof editProductFormSchema>;
@@ -65,27 +68,51 @@ export const EditProductDialog: React.FC<EditProductDialogProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadedImages, setUploadedImages] = useState<ImageUpload[]>([]);
   const [existingImages, setExistingImages] = useState<string[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [isLoadingCategories, setIsLoadingCategories] = useState(true);
 
   const form = useForm<EditProductFormData>({
     resolver: zodResolver(editProductFormSchema),
     defaultValues: {
       title: product?.title || '',
+      description: product?.description || '',
+      short_description: product?.short_description || '',
       price: product?.price || 0.01,
-      category: product?.category || 'Photo Magnets',
+      category_id: product?.category_id || 0,
       rating: product?.rating || 0,
-      description: '',
     },
   });
+
+  // Fetch categories when dialog opens
+  React.useEffect(() => {
+    if (open) {
+      fetchCategories();
+    }
+  }, [open]);
+
+  const fetchCategories = async () => {
+    try {
+      setIsLoadingCategories(true);
+      const fetchedCategories = await productService.getCategoriesWithDetails();
+      setCategories(fetchedCategories);
+    } catch (error) {
+      console.error('Failed to fetch categories:', error);
+      toast.error('Failed to load categories');
+    } finally {
+      setIsLoadingCategories(false);
+    }
+  };
 
   // Update form when product changes
   React.useEffect(() => {
     if (product && open) {
       form.reset({
         title: product.title,
+        description: product.description || '',
+        short_description: product.short_description || '',
         price: product.price,
-        category: product.category,
+        category_id: product.category_id || 0,
         rating: product.rating || 0,
-        description: '',
       });
       setExistingImages(product.images || []);
       setUploadedImages([]);
@@ -127,21 +154,24 @@ export const EditProductDialog: React.FC<EditProductDialogProps> = ({
     try {
       setIsSubmitting(true);
       
-      // TODO: Implement actual API call to update product
-      console.log('Updating product:', {
+      const updateData: UpdateProductRequest = {
         id: product.id,
-        ...data,
-        existingImages,
-        newImages: uploadedImages.map(img => img.file),
-      });
-      
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
+        title: data.title,
+        description: data.description,
+        short_description: data.short_description,
+        price: data.price,
+        category_id: data.category_id,
+        rating: data.rating,
+        images: uploadedImages.map(img => img.file),
+      };
+
+      await productService.updateProduct(updateData);
       
       toast.success('Product updated successfully!');
       onOpenChange(false);
       onProductUpdated?.();
     } catch (error) {
+      console.error('Failed to update product:', error);
       toast.error('Failed to update product. Please try again.');
     } finally {
       setIsSubmitting(false);
@@ -192,23 +222,73 @@ export const EditProductDialog: React.FC<EditProductDialogProps> = ({
               )}
             />
 
+            {/* Short Description */}
+            <FormField
+              control={form.control}
+              name="short_description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Short Description</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="Brief product description..."
+                      {...field}
+                      disabled={isSubmitting}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Brief description for product listings
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Full Description */}
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Description</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="Detailed product description..."
+                      className="min-h-[80px]"
+                      {...field}
+                      disabled={isSubmitting}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Full description with details and features
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             {/* Category */}
             <FormField
               control={form.control}
-              name="category"
+              name="category_id"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Category *</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
+                  <Select 
+                    onValueChange={(value) => field.onChange(parseInt(value))} 
+                    value={field.value?.toString()}
+                  >
                     <FormControl>
-                      <SelectTrigger disabled={isSubmitting}>
-                        <SelectValue placeholder="Select a category" />
+                      <SelectTrigger disabled={isSubmitting || isLoadingCategories}>
+                        <SelectValue placeholder={isLoadingCategories ? "Loading categories..." : "Select a category"} />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="Photo Magnets">Photo Magnets</SelectItem>
-                      <SelectItem value="Fridge Magnets">Fridge Magnets</SelectItem>
-                      <SelectItem value="Retro Prints">Retro Prints</SelectItem>
+                      {categories.map((category) => (
+                        <SelectItem key={category.id} value={category.id.toString()}>
+                          {category.name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -257,37 +337,11 @@ export const EditProductDialog: React.FC<EditProductDialogProps> = ({
                         disabled={isSubmitting}
                       />
                     </FormControl>
-                    <FormDescription>
-                      Rating from 0 to 5
-                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
               />
             </div>
-
-            {/* Description */}
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Description</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="Enter product description..."
-                      className="min-h-[80px]"
-                      {...field}
-                      disabled={isSubmitting}
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    Optional product description
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
 
             {/* Image Management */}
             <div className="space-y-4">

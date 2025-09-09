@@ -1,19 +1,40 @@
+export interface Category {
+  id: number;
+  name: string;
+  description: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CategoriesResponse {
+  success: boolean;
+  message: string;
+  data: Category[];
+  total: number;
+}
+
 export interface Product {
   id: number;
   title: string;
+  description?: string;
+  short_description?: string;
   price: number;
-  category: 'Photo Magnets' | 'Fridge Magnets' | 'Retro Prints';
+  category_id: number; // Category ID for API calls
+  category_name: string; // Category name for display
   rating?: number;
   images?: string[];
-  locked?: boolean;
+  is_locked?: boolean;
   created_at?: string;
   updated_at?: string;
 }
 
 export interface CreateProductRequest {
   title: string;
+  description?: string;
+  short_description?: string;
   price: number;
-  category: string;
+  category_id: number; // Backend expects category_id, not category name
   rating?: number;
   images?: File[];
 }

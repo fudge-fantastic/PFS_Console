@@ -1,6 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AdminLayout } from '../../components/layout/AdminLayout';
-import { Breadcrumb } from '../../components/layout/Breadcrumb';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -15,6 +14,8 @@ import {
 import { ProductsTable } from '../../components/data-display/ProductsTable';
 import { CreateProductDialog } from '../../components/forms/CreateProductDialog';
 import { useNotifications } from '../../contexts/NotificationContext';
+import { productService } from '../../services/product.service';
+import { toast } from 'sonner';
 import { 
   Package,
   Plus,
@@ -28,33 +29,40 @@ export default function Products() {
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [isLoadingCategories, setIsLoadingCategories] = useState(true);
   const { success } = useNotifications();
 
-  const handleCreateProduct = (productData: any) => {
-    console.log('Creating product:', productData);
-    success('Product created successfully!', {
-      description: `${productData.name} has been added to your catalog.`,
-    });
-    setShowCreateDialog(false);
+  // Fetch categories on component mount
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  const fetchCategories = async () => {
+    try {
+      setIsLoadingCategories(true);
+      const fetchedCategories = await productService.getCategories();
+      setCategories(fetchedCategories);
+    } catch (error) {
+      console.error('Failed to fetch categories:', error);
+      toast.error('Failed to load categories');
+    } finally {
+      setIsLoadingCategories(false);
+    }
   };
 
-  const categories = [
-    { value: 'all', label: 'All Categories' },
-    { value: 'Photo Magnets', label: 'Photo Magnets' },
-    { value: 'Fridge Magnets', label: 'Fridge Magnets' },
-    { value: 'Retro Prints', label: 'Retro Prints' },
-  ];
+  const handleCreateProduct = () => {
+    console.log('Product created successfully');
+    setShowCreateDialog(false);
+  };
 
   return (
     <AdminLayout>
       <div className="space-y-6">
-        {/* Breadcrumb */}
-        <Breadcrumb />
-
         {/* Header */}
         <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center">
+            <h1 className="text-2xl font-bold flex items-center">
               <Package className="mr-3 h-7 w-7" />
               Products Management
             </h1>
@@ -64,14 +72,14 @@ export default function Products() {
           </div>
           
           <div className="flex items-center space-x-3">
-            <Button variant="outline" size="sm">
+            {/* <Button variant="outline" size="sm">
               <Upload className="mr-2 h-4 w-4" />
               Import
             </Button>
             <Button variant="outline" size="sm">
               <Download className="mr-2 h-4 w-4" />
               Export
-            </Button>
+            </Button> */}
             <Button onClick={() => setShowCreateDialog(true)}>
               <Plus className="mr-2 h-4 w-4" />
               Add Product
@@ -110,13 +118,14 @@ export default function Products() {
                   Category
                 </label>
                 <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select category" />
+                  <SelectTrigger disabled={isLoadingCategories}>
+                    <SelectValue placeholder={isLoadingCategories ? "Loading..." : "Select category"} />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="all">All Categories</SelectItem>
                     {categories.map((category) => (
-                      <SelectItem key={category.value} value={category.value}>
-                        {category.label}
+                      <SelectItem key={category} value={category}>
+                        {category}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -151,7 +160,7 @@ export default function Products() {
         <CreateProductDialog
           open={showCreateDialog}
           onOpenChange={setShowCreateDialog}
-          onSubmit={handleCreateProduct}
+          onProductCreated={handleCreateProduct}
         />
       </div>
     </AdminLayout>

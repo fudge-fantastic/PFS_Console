@@ -23,6 +23,7 @@ import {
 import { DataTablePagination } from './DataTablePagination';
 import { BulkActionsBar } from '../advanced/BulkActionsBar';
 import { EditProductDialog } from '../forms/EditProductDialog';
+import { ProductDetailModal } from './ProductDetailModal';
 import { useProducts } from '../../hooks/useProducts';
 import { useNotifications } from '../../contexts/NotificationContext';
 import type { Product } from '../../types/product';
@@ -44,6 +45,7 @@ export const ProductsTable: React.FC<ProductsTableProps> = ({
   const { success, warning, error: showError } = useNotifications();
   const [selectedProducts, setSelectedProducts] = useState<number[]>([]);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [viewingProduct, setViewingProduct] = useState<Product | null>(null);
 
   const handleSelectAll = () => {
     if (selectedProducts.length === products.length) {
@@ -121,8 +123,7 @@ export const ProductsTable: React.FC<ProductsTableProps> = ({
   };
 
   const handleViewProduct = (product: Product) => {
-    console.log('View product:', product);
-    // TODO: Navigate to product detail page
+    setViewingProduct(product);
   };
 
   const handleEditProduct = (product: Product) => {
@@ -131,7 +132,7 @@ export const ProductsTable: React.FC<ProductsTableProps> = ({
 
   const handleToggleLock = (product: Product) => {
     console.log('Toggle lock product:', product);
-    const action = product.locked ? 'unlocked' : 'locked';
+    const action = product.is_locked ? 'unlocked' : 'locked';
     success(`Product ${action} successfully`);
   };
 
@@ -290,9 +291,9 @@ export const ProductsTable: React.FC<ProductsTableProps> = ({
                   <TableCell>
                     <Badge 
                       variant="secondary"
-                      className={getCategoryColor(product.category)}
+                      className={getCategoryColor(product.category_name)}
                     >
-                      {product.category}
+                      {product.category_name}
                     </Badge>
                   </TableCell>
                   <TableCell className="font-medium">
@@ -310,10 +311,10 @@ export const ProductsTable: React.FC<ProductsTableProps> = ({
                   </TableCell>
                   <TableCell>
                     <Badge
-                      variant={product.locked ? 'destructive' : 'default'}
-                      className={product.locked ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}
+                      variant={product.is_locked ? 'destructive' : 'default'}
+                      className={product.is_locked ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}
                     >
-                      {product.locked ? (
+                      {product.is_locked ? (
                         <>
                           <Lock className="w-3 h-3 mr-1" />
                           Locked
@@ -346,7 +347,7 @@ export const ProductsTable: React.FC<ProductsTableProps> = ({
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={() => handleToggleLock(product)}>
-                          {product.locked ? (
+                          {product.is_locked ? (
                             <>
                               <Unlock className="mr-2 h-4 w-4" />
                               Unlock Product
@@ -406,6 +407,15 @@ export const ProductsTable: React.FC<ProductsTableProps> = ({
           }}
         />
       )}
+
+      {/* Product Detail Modal */}
+      <ProductDetailModal
+        product={viewingProduct}
+        open={!!viewingProduct}
+        onOpenChange={(open) => {
+          if (!open) setViewingProduct(null);
+        }}
+      />
     </div>
   );
 };

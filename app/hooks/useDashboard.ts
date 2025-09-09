@@ -62,8 +62,8 @@ export const useDashboard = () => {
       // Process products data
       const products: Product[] = productsResponse.status === 'fulfilled' ? productsResponse.value.data : [];
       const totalProducts = productsResponse.status === 'fulfilled' ? productsResponse.value.total || 0 : 0;
-      const activeProducts = products.filter((p: Product) => !p.locked).length;
-      const lockedProducts = products.filter((p: Product) => p.locked).length;
+      const activeProducts = products.filter((p: Product) => !p.is_locked).length;
+      const lockedProducts = products.filter((p: Product) => p.is_locked).length;
 
       // Process system health
       const systemHealth = healthResponse.status === 'fulfilled' 
@@ -81,7 +81,7 @@ export const useDashboard = () => {
         .map((product: Product) => ({
           id: `product-${product.id}`,
           type: 'product' as const,
-          action: product.locked ? 'Product locked' : 'Product created',
+          action: product.is_locked ? 'Product locked' : 'Product created',
           item: product.title,
           timestamp: product.created_at!,
           time: formatTimeAgo(product.created_at!),

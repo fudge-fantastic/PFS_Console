@@ -4,10 +4,12 @@ export const API_ENDPOINTS = {
   // Authentication
   LOGIN: '/auth/login',
   REGISTER: '/auth/register',
+  TOKEN: '/auth/token',
   
   // Users
   USERS_ME: '/users/me',
   USERS_LIST: '/users/',
+  USERS_BY_ID: (id: number) => `/users/${id}`,
   
   // Products
   PRODUCTS_LIST: '/products/',
@@ -16,21 +18,20 @@ export const API_ENDPOINTS = {
   PRODUCTS_BY_ID: (id: number) => `/products/${id}`,
   PRODUCTS_LOCK: (id: number) => `/products/${id}/lock`,
   PRODUCTS_UNLOCK: (id: number) => `/products/${id}/unlock`,
+  PRODUCTS_CATEGORIES: '/categories', // New endpoint for dynamic categories
+  
+  // Inquiry System
+  INQUIRY_CONTACT: '/inquiry/contact',
+  INQUIRY_TEST: '/inquiry/contact/test',
   
   // System
   WELCOME: '/',
   HEALTH: '/health',
 } as const;
 
-export const PRODUCT_CATEGORIES = [
-  'Photo Magnets',
-  'Fridge Magnets',
-  'Retro Prints',
-] as const;
-
 export const USER_ROLES = {
-  ADMIN: 'admin',
-  USER: 'user',
+  ADMIN: 'ADMIN',
+  USER: 'USER',
 } as const;
 
 export const APP_CONFIG = {

@@ -6,10 +6,29 @@ import type {
   ProductResponse,
   CreateProductRequest, 
   UpdateProductRequest,
-  ProductFilters 
+  ProductFilters,
+  CategoriesResponse,
+  Category
 } from '../types/product';
 
 export const productService = {
+  // Get all categories as name-value pairs for dropdowns
+  getCategories: async (): Promise<string[]> => {
+    const response = await apiClient.get<CategoriesResponse>(
+      API_ENDPOINTS.PRODUCTS_CATEGORIES
+    );
+    // Extract just the category names from the response
+    return response.data.data.map(category => category.name);
+  },
+
+  // Get full category objects with IDs (needed for product creation)
+  getCategoriesWithDetails: async (): Promise<Category[]> => {
+    const response = await apiClient.get<CategoriesResponse>(
+      API_ENDPOINTS.PRODUCTS_CATEGORIES
+    );
+    return response.data.data;
+  },
+
   // Get all products
   getProducts: async (filters: ProductFilters = {}): Promise<ProductsResponse> => {
     const params = new URLSearchParams();
@@ -71,7 +90,7 @@ export const productService = {
     }
 
     const response = await apiClient.get<ProductsResponse>(
-      `${API_ENDPOINTS.PRODUCTS_BY_CATEGORY}/${category}?${params.toString()}`
+      `${API_ENDPOINTS.PRODUCTS_BY_CATEGORY}/${encodeURIComponent(category)}?${params.toString()}`
     );
     return response.data;
   },
@@ -90,7 +109,15 @@ export const productService = {
     
     formData.append('title', productData.title);
     formData.append('price', productData.price.toString());
-    formData.append('category', productData.category);
+    formData.append('category_id', productData.category_id.toString());
+    
+    if (productData.description) {
+      formData.append('description', productData.description);
+    }
+    
+    if (productData.short_description) {
+      formData.append('short_description', productData.short_description);
+    }
     
     if (productData.rating !== undefined) {
       formData.append('rating', productData.rating.toString());
@@ -125,8 +152,14 @@ export const productService = {
     if (updateData.price !== undefined) {
       formData.append('price', updateData.price.toString());
     }
-    if (updateData.category) {
-      formData.append('category', updateData.category);
+    if (updateData.category_id) {
+      formData.append('category_id', updateData.category_id.toString());
+    }
+    if (updateData.description) {
+      formData.append('description', updateData.description);
+    }
+    if (updateData.short_description) {
+      formData.append('short_description', updateData.short_description);
     }
     if (updateData.rating !== undefined) {
       formData.append('rating', updateData.rating.toString());

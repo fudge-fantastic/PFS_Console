@@ -23,6 +23,14 @@ export const userService = {
     return response.data;
   },
 
+  // Get user by ID (admin only)
+  getUserById: async (id: number): Promise<User> => {
+    const response = await apiClient.get<{ success: boolean; data: User }>(
+      API_ENDPOINTS.USERS_BY_ID(id)
+    );
+    return response.data.data;
+  },
+
   // Get current user
   getCurrentUser: async (): Promise<User> => {
     const response = await apiClient.get<{ success: boolean; data: User }>(

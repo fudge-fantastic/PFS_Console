@@ -1,23 +1,23 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Outlet, Navigate } from 'react-router';
 import { Header } from './Header';
 import { Sidebar } from './Sidebar';
 import { useAuth } from '../../hooks/useAuth';
 import { useCommandPalette } from '../../hooks/useCommandPalette';
 import { CommandPalette } from '../advanced/CommandPalette';
+import { SidebarProvider, SidebarInset } from '../ui/sidebar';
 
 interface AdminLayoutProps {
   children?: React.ReactNode;
 }
 
 export function AdminLayout({ children }: AdminLayoutProps) {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const { isAuthenticated, isLoading } = useAuth();
   const { isOpen, setIsOpen } = useCommandPalette();
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-lg">Loading...</div>
       </div>
     );
@@ -28,28 +28,27 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Sidebar */}
-      <Sidebar 
-        open={sidebarOpen} 
-        onClose={() => setSidebarOpen(false)} 
-      />
-      
-      {/* Main content */}
-      <div className="lg:pl-72">
-        {/* Header */}
-        <Header onMenuClick={() => setSidebarOpen(true)} />
+    <SidebarProvider>
+      <div className="flex min-h-screen w-full bg-background">
+        {/* Sidebar - as layout component */}
+        <Sidebar />
         
-        {/* Page content */}
-        <main className="py-6">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            {children || <Outlet />}
-          </div>
-        </main>
+        {/* Main content area */}
+        <SidebarInset className="flex-1 flex flex-col min-w-0">
+          {/* Header */}
+          <Header />
+          
+          {/* Page content */}
+          <main className="flex-1 py-6">
+            <div className="mx-auto w-full max-w-none px-6">
+              {children || <Outlet />}
+            </div>
+          </main>
+        </SidebarInset>
+        
+        {/* Command Palette */}
+        <CommandPalette open={isOpen} onOpenChange={setIsOpen} />
       </div>
-      
-      {/* Command Palette */}
-      <CommandPalette open={isOpen} onOpenChange={setIsOpen} />
-    </div>
+    </SidebarProvider>
   );
 }

@@ -1,59 +1,104 @@
 import React from 'react';
-import { Link } from 'react-router';
+import { Link, useLocation } from 'react-router';
 import { Button } from '../ui/button';
-import { Avatar, AvatarFallback } from '../ui/avatar';
 import { Badge } from '../ui/badge';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '../ui/dropdown-menu';
-import { Menu, LogOut, User, Settings, Search, Bell, Command } from 'lucide-react';
-import { useAuth } from '../../hooks/useAuth';
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from '../ui/breadcrumb';
+import { SidebarTrigger } from '../ui/sidebar';
+import { Search } from 'lucide-react';
 import { useCommandPalette } from '../../hooks/useCommandPalette';
 import { NotificationCenter } from '../advanced/NotificationCenter';
+import ModeToggle from '../dark-mode-toggler';
 
-interface HeaderProps {
-  onMenuClick: () => void;
+interface BreadcrumbItem {
+  label: string;
+  href?: string;
 }
 
-export function Header({ onMenuClick }: HeaderProps) {
-  const { user, logout } = useAuth();
-  const { toggle: toggleCommandPalette } = useCommandPalette();
+function generateBreadcrumbsFromPath(pathname: string): BreadcrumbItem[] {
+  const segments = pathname.split('/').filter(Boolean);
+  const breadcrumbs: BreadcrumbItem[] = [];
 
-  const handleLogout = () => {
-    logout();
+  // Skip if on dashboard (home)
+  if (segments[0] === 'dashboard' && segments.length === 1) {
+    return [];
+  }
+
+  // Map common paths to readable names
+  const pathMap: Record<string, string> = {
+    dashboard: 'Dashboard',
+    products: 'Products',
+    users: 'Users',
+    system: 'System',
+    create: 'Create',
+    edit: 'Edit',
+    health: 'Health Check',
   };
 
+  segments.forEach((segment, index) => {
+    const isLast = index === segments.length - 1;
+    const label = pathMap[segment] || segment.charAt(0).toUpperCase() + segment.slice(1);
+    
+    // Build href for all but last segment
+    const href = isLast ? undefined : '/' + segments.slice(0, index + 1).join('/');
+    
+    breadcrumbs.push({ label, href });
+  });
+
+  return breadcrumbs;
+}
+
+export function Header() {
+  const { toggle: toggleCommandPalette } = useCommandPalette();
+  const location = useLocation();
+
+  // Auto-generate breadcrumbs from URL
+  const breadcrumbItems = generateBreadcrumbsFromPath(location.pathname);
+
   return (
-    <div className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-4 border-b border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800 px-4 shadow-sm sm:gap-x-6 sm:px-6 lg:px-8">
-      {/* Mobile menu button */}
-      <Button
-        variant="ghost"
-        size="sm"
-        className="-m-2.5 p-2.5 text-gray-700 dark:text-gray-300 lg:hidden"
-        onClick={onMenuClick}
-      >
-        <span className="sr-only">Open sidebar</span>
-        <Menu className="h-6 w-6" aria-hidden="true" />
-      </Button>
+    <div className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-4 border-b bg-background px-4 shadow-sm">
+      {/* Sidebar trigger */}
+      <SidebarTrigger />
 
-      {/* Separator */}
-      <div className="h-6 w-px bg-gray-900/10 dark:bg-gray-100/10 lg:hidden" aria-hidden="true" />
-
-      <div className="flex flex-1 gap-x-4 self-stretch lg:gap-x-6">
-        {/* Left side - Brand */}
+      <div className="flex flex-1 gap-x-4 self-stretch">
+        {/* Left side - Breadcrumb */}
         <div className="flex flex-1 items-center">
-          <h1 className="text-xl font-semibold text-gray-900 dark:text-white">
-            PixelForge Studio Admin
-          </h1>
+          {breadcrumbItems.length > 0 && (
+            <Breadcrumb>
+              <BreadcrumbList>
+                <BreadcrumbItem>
+                  <BreadcrumbLink asChild>
+                    <Link to="/dashboard">Dashboard</Link>
+                  </BreadcrumbLink>
+                </BreadcrumbItem>
+                {breadcrumbItems.map((item, index) => (
+                  <React.Fragment key={item.label}>
+                    <BreadcrumbSeparator />
+                    <BreadcrumbItem>
+                      {item.href ? (
+                        <BreadcrumbLink asChild>
+                          <Link to={item.href}>{item.label}</Link>
+                        </BreadcrumbLink>
+                      ) : (
+                        <BreadcrumbPage>{item.label}</BreadcrumbPage>
+                      )}
+                    </BreadcrumbItem>
+                  </React.Fragment>
+                ))}
+              </BreadcrumbList>
+            </Breadcrumb>
+          )}
         </div>
         
-        {/* Center - Command palette trigger */}
-        <div className="flex items-center">
+        {/* Right side - Command trigger, Theme Toggle, and Notifications */}
+        <div className="flex items-center gap-x-3">
+          {/* Command palette trigger */}
           <Button
             variant="outline"
             size="sm"
@@ -66,63 +111,12 @@ export function Header({ onMenuClick }: HeaderProps) {
               ⌘K
             </Badge>
           </Button>
-        </div>
-        
-        {/* Right side - Actions and User menu */}
-        <div className="flex items-center gap-x-3 lg:gap-x-4">
+
+          {/* Theme toggle */}
+          <ModeToggle />
+          
           {/* Notifications */}
           <NotificationCenter />
-          
-          {/* Profile dropdown */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                <Avatar className="h-8 w-8">
-                  <AvatarFallback className="bg-primary text-primary-foreground">
-                    {user?.email.charAt(0).toUpperCase() || 'A'}
-                  </AvatarFallback>
-                </Avatar>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-56" align="end" forceMount>
-              <DropdownMenuLabel className="font-normal">
-                <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium leading-none">
-                    {user?.email}
-                  </p>
-                  <p className="text-xs leading-none text-muted-foreground">
-                    Role: {user?.role}
-                  </p>
-                </div>
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={toggleCommandPalette} className="cursor-pointer">
-                <Command className="mr-2 h-4 w-4" />
-                <span>Command Palette</span>
-                <Badge variant="outline" className="ml-auto text-xs">
-                  ⌘K
-                </Badge>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
-                <Link to="/profile" className="cursor-pointer">
-                  <User className="mr-2 h-4 w-4" />
-                  <span>Profile</span>
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link to="/settings" className="cursor-pointer">
-                  <Settings className="mr-2 h-4 w-4" />
-                  <span>Settings</span>
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
-                <LogOut className="mr-2 h-4 w-4" />
-                <span>Log out</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
         </div>
       </div>
     </div>

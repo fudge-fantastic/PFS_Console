@@ -19,13 +19,15 @@ export interface PaginationParams {
 }
 
 export interface SystemHealth {
-  status: 'healthy' | 'unhealthy';
-  timestamp: string;
-  uptime?: number;
+  status: string;
+  database?: string;
+  upload_service?: string;
 }
 
 export interface WelcomeMessage {
   message: string;
-  version?: string;
-  timestamp?: string;
+  version: string;
+  status: string;
+  docs: string;
+  redoc: string;
 }

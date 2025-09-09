@@ -3,7 +3,6 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { systemService } from '../../services/system.service';
 import { AdminLayout } from '../../components/layout/AdminLayout';
-import { Breadcrumb } from '../../components/layout/Breadcrumb';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
@@ -21,14 +20,9 @@ import {
 import { toast } from 'sonner';
 
 interface SystemHealthData {
-  status: 'healthy' | 'unhealthy';
-  timestamp: string;
-  uptime?: number;
-  components: {
-    api: 'healthy' | 'warning' | 'error';
-    database: 'healthy' | 'warning' | 'error';
-    storage: 'healthy' | 'warning' | 'error';
-  };
+  status: string;
+  database?: string;
+  upload_service?: string;
 }
 
 export default function SystemHealth() {
@@ -44,20 +38,7 @@ export default function SystemHealth() {
       setError(null);
       
       const response = await systemService.getHealthStatus();
-      
-      // Mock additional health data for demonstration
-      const mockHealthData: SystemHealthData = {
-        status: response.status === 'healthy' ? 'healthy' : 'unhealthy',
-        timestamp: response.timestamp,
-        uptime: Math.floor(Math.random() * 86400), // Random uptime in seconds
-        components: {
-          api: response.status === 'healthy' ? 'healthy' : 'warning',
-          database: 'healthy',
-          storage: 'healthy',
-        }
-      };
-      
-      setHealthData(mockHealthData);
+      setHealthData(response);
       setLastUpdated(new Date());
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch health data';
@@ -151,17 +132,14 @@ export default function SystemHealth() {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        {/* Breadcrumb */}
-        <Breadcrumb />
-
         {/* Page Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center">
+            <h1 className="text-2xl font-bold flex items-center">
               <Activity className="mr-3 h-6 w-6" />
               System Health
             </h1>
-            <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+            <p className="mt-1 text-sm text-muted-foreground">
               Monitor system status and performance
             </p>
           </div>

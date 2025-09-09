@@ -10,6 +10,7 @@ export default [
   route("products/create", "routes/products/create.tsx"),
   route("products/:productId", "routes/products/$productId.tsx"),
   route("products/:productId/edit", "routes/products/$productId.edit.tsx"),
+  route("inquiries", "routes/inquiries.tsx"),
   route("system", "routes/system/index.tsx"),
   route("system/health", "routes/system/health.tsx"),
 ] satisfies RouteConfig;
