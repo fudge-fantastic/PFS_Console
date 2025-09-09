@@ -168,8 +168,8 @@ export const EditProductDialog: React.FC<EditProductDialogProps> = ({
       await productService.updateProduct(updateData);
       
       toast.success('Product updated successfully!');
-      onOpenChange(false);
       onProductUpdated?.();
+      onOpenChange(false);
     } catch (error) {
       console.error('Failed to update product:', error);
       toast.error('Failed to update product. Please try again.');

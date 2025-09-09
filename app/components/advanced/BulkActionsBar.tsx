@@ -49,6 +49,7 @@ interface BulkActionsBarProps {
   operations: BulkOperation[];
   itemType?: string;
   selectionState?: 'none' | 'partial' | 'all';
+  disabled?: boolean;
 }
 
 export const BulkActionsBar: React.FC<BulkActionsBarProps> = ({
@@ -58,6 +59,7 @@ export const BulkActionsBar: React.FC<BulkActionsBarProps> = ({
   onDeselectAll,
   operations,
   itemType = 'items',
+  disabled = false,
 }) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [confirmOperation, setConfirmOperation] = useState<BulkOperation | null>(null);
@@ -121,14 +123,15 @@ export const BulkActionsBar: React.FC<BulkActionsBarProps> = ({
             size="sm"
             onClick={handleSelectToggle}
             className="p-1"
+            disabled={disabled}
           >
             {renderCheckboxIcon()}
           </Button>
-          <span className="text-sm text-gray-600 dark:text-gray-400">
+          <span className={`text-sm ${disabled ? 'text-gray-400' : 'text-gray-600 dark:text-gray-400'}`}>
             Select {itemType} to perform bulk actions
           </span>
         </div>
-        <div className="text-sm text-gray-500">
+        <div className={`text-sm ${disabled ? 'text-gray-400' : 'text-gray-500'}`}>
           {totalItems} total {itemType}
         </div>
       </div>
@@ -144,6 +147,7 @@ export const BulkActionsBar: React.FC<BulkActionsBarProps> = ({
             size="sm"
             onClick={handleSelectToggle}
             className="p-1"
+            disabled={disabled}
           >
             {renderCheckboxIcon()}
           </Button>
@@ -162,7 +166,7 @@ export const BulkActionsBar: React.FC<BulkActionsBarProps> = ({
             variant="outline"
             size="sm"
             onClick={onDeselectAll}
-            disabled={isProcessing}
+            disabled={isProcessing || disabled}
           >
             Clear Selection
           </Button>
@@ -173,7 +177,7 @@ export const BulkActionsBar: React.FC<BulkActionsBarProps> = ({
                 <Button 
                   variant="default" 
                   size="sm"
-                  disabled={isProcessing}
+                  disabled={isProcessing || disabled}
                 >
                   Bulk Actions
                   <ChevronDown className="ml-2 h-4 w-4" />
@@ -189,6 +193,7 @@ export const BulkActionsBar: React.FC<BulkActionsBarProps> = ({
                     key={operation.id}
                     onClick={() => handleOperation(operation)}
                     className={operation.variant === 'destructive' ? 'text-red-600' : ''}
+                    disabled={disabled}
                   >
                     {operation.icon}
                     <span className="ml-2">{operation.label}</span>

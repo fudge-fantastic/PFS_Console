@@ -13,7 +13,6 @@ import {
 } from '../../components/ui/select';
 import { ProductsTable } from '../../components/data-display/ProductsTable';
 import { CreateProductDialog } from '../../components/forms/CreateProductDialog';
-import { useNotifications } from '../../contexts/NotificationContext';
 import { productService } from '../../services/product.service';
 import { toast } from 'sonner';
 import {
@@ -32,7 +31,7 @@ export default function Products() {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [categories, setCategories] = useState<string[]>([]);
   const [isLoadingCategories, setIsLoadingCategories] = useState(true);
-  const { success } = useNotifications();
+  const [tableKey, setTableKey] = useState(0); // Key to force table refresh
 
   // Fetch categories on component mount
   useEffect(() => {
@@ -54,7 +53,9 @@ export default function Products() {
 
   const handleCreateProduct = () => {
     console.log('Product created successfully');
+    toast.success('Product created successfully');
     setShowCreateDialog(false);
+    setTableKey(prev => prev + 1); // Force table refresh
   };
 
   return (
@@ -81,6 +82,7 @@ export default function Products() {
 
         {/* Products Table with filters toolbar (shadcn Tasks style) */}
         <ProductsTable
+          key={tableKey}
           searchTerm={searchTerm}
           categoryFilter={categoryFilter}
           statusFilter={statusFilter}

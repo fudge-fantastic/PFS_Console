@@ -39,7 +39,7 @@ import { BulkActionsBar } from '../advanced/BulkActionsBar';
 import { EditProductDialog } from '../forms/EditProductDialog';
 import { ProductDetailModal } from './ProductDetailModal';
 import { useProducts } from '../../hooks/useProducts';
-import { useNotifications } from '../../contexts/NotificationContext';
+import { toast } from 'sonner';
 import { productService } from '../../services/product.service';
 import type { Product } from '../../types/product';
 
@@ -72,7 +72,6 @@ export const ProductsTable: React.FC<ProductsTableProps> = ({
     refetch: refetchProducts
   } = useProducts({ searchTerm, categoryFilter, statusFilter });
   
-  const { success, warning, error: showError } = useNotifications();
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [viewingProduct, setViewingProduct] = useState<Product | null>(null);
@@ -147,35 +146,61 @@ export const ProductsTable: React.FC<ProductsTableProps> = ({
     setEditingProduct(product);
   };
 
-  const handleToggleLock = (product: Product) => {
-    console.log('Toggle lock product:', product);
-    const action = product.is_locked ? 'unlocked' : 'locked';
-    success(`Product ${action} successfully`);
+  const handleToggleLock = async (product: Product) => {
+    try {
+      if (product.is_locked) {
+        await productService.unlockProduct(product.id);
+        toast.success('Product unlocked successfully');
+      } else {
+        await productService.lockProduct(product.id);
+        toast.success('Product locked successfully');
+      }
+      refetchProducts();
+    } catch (error) {
+      toast.error('Failed to update product status');
+    }
   };
 
   const handleDeleteProduct = (product: Product) => {
-    warning(`Delete "${product.title}"?`, {
-      description: 'This action cannot be undone.',
-      actions: [
-        {
-          label: 'Cancel',
-          onClick: () => {},
-        },
-        {
-          label: 'Delete',
-          onClick: async () => {
-            try {
-              await productService.deleteProduct(product.id);
-              success('Product deleted successfully');
-              refetchProducts();
-            } catch (err) {
-              showError('Failed to delete product');
-            }
-          },
-          variant: 'destructive',
-        },
-      ],
-    });
+    toast.custom(
+      (t) => (
+        <div className="flex items-start space-x-3 p-4 bg-background border rounded-lg shadow-lg min-w-[350px]">
+          <div className="mt-0.5">
+            <AlertCircle className="h-4 w-4 text-yellow-600" />
+          </div>
+          <div className="flex-1 space-y-1">
+            <div className="font-medium text-sm">Delete "{product.title}"?</div>
+            <div className="text-sm text-muted-foreground">
+              This action cannot be undone.
+            </div>
+            <div className="flex space-x-2 mt-2">
+              <button
+                onClick={() => toast.dismiss(t)}
+                className="px-3 py-1 text-xs rounded-md transition-colors bg-secondary text-secondary-foreground hover:bg-secondary/80"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  try {
+                    await productService.deleteProduct(product.id);
+                    toast.success('Product deleted successfully');
+                    refetchProducts();
+                  } catch (err) {
+                    toast.error('Failed to delete product');
+                  }
+                  toast.dismiss(t);
+                }}
+                className="px-3 py-1 text-xs rounded-md transition-colors bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      ),
+      { duration: Infinity }
+    );
   };
 
   // Bulk selection helpers
@@ -213,7 +238,7 @@ export const ProductsTable: React.FC<ProductsTableProps> = ({
         await Promise.all(
           selectedIds.map((id) => productService.lockProduct(Number(id)))
         );
-        success(`Locked ${selectedIds.length} products`);
+        toast.success(`Locked ${selectedIds.length} products`);
         setSelectedProducts([]);
         refetchProducts();
       },
@@ -226,7 +251,7 @@ export const ProductsTable: React.FC<ProductsTableProps> = ({
         await Promise.all(
           selectedIds.map((id) => productService.unlockProduct(Number(id)))
         );
-        success(`Unlocked ${selectedIds.length} products`);
+        toast.success(`Unlocked ${selectedIds.length} products`);
         setSelectedProducts([]);
         refetchProducts();
       },
@@ -242,7 +267,7 @@ export const ProductsTable: React.FC<ProductsTableProps> = ({
         await Promise.all(
           selectedIds.map((id) => productService.deleteProduct(Number(id)))
         );
-        success(`Deleted ${selectedIds.length} products`);
+        toast.success(`Deleted ${selectedIds.length} products`);
         setSelectedProducts([]);
         refetchProducts();
       },
@@ -270,17 +295,16 @@ export const ProductsTable: React.FC<ProductsTableProps> = ({
 
   return (
     <div className="space-y-4">
-      {/* Bulk Actions Bar */}
-      {!isLoading && products.length > 0 && (
-        <BulkActionsBar
-          selectedItems={selectedProducts}
-          totalItems={products.length}
-          onSelectAll={() => setSelectedProducts(products.map((p) => String(p.id)))}
-          onDeselectAll={() => setSelectedProducts([])}
-          operations={productBulkOperations}
-          itemType="products"
-        />
-      )}
+      {/* Bulk Actions Bar - Always show to prevent layout shift */}
+      <BulkActionsBar
+        selectedItems={selectedProducts}
+        totalItems={products.length}
+        onSelectAll={() => setSelectedProducts(products.map((p) => String(p.id)))}
+        onDeselectAll={() => setSelectedProducts([])}
+        operations={productBulkOperations}
+        itemType="products"
+        disabled={isLoading || products.length === 0}
+      />
 
       {/* Toolbar similar to shadcn Tasks: search + status filter + category filter + column selector */}
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -411,21 +435,20 @@ export const ProductsTable: React.FC<ProductsTableProps> = ({
         <Table className="rounded-2xl min-w-full text-[15px]">
           <TableHeader className="sticky top-0 z-10 bg-zinc-100 dark:bg-zinc-900">
             <TableRow className="">
-              {/* Bulk selection checkbox */}
-              {!isLoading && products.length > 0 && (
-                <TableHead className="w-12 px-4 py-3 rounded-tl-2xl">{/* leftmost rounded */}
-                  <Checkbox
-                    checked={
-                      selectionState === 'all'
-                        ? true
-                        : selectionState === 'partial'
-                        ? 'indeterminate'
-                        : false
-                    }
-                    onCheckedChange={handleSelectAll}
-                  />
-                </TableHead>
-              )}
+              {/* Bulk selection checkbox - Always show to prevent layout shift */}
+              <TableHead className="w-12 px-4 py-3 rounded-tl-2xl">
+                <Checkbox
+                  checked={
+                    selectionState === 'all'
+                      ? true
+                      : selectionState === 'partial'
+                      ? 'indeterminate'
+                      : false
+                  }
+                  onCheckedChange={handleSelectAll}
+                  disabled={isLoading || products.length === 0}
+                />
+              </TableHead>
               {columnVisibility.id && <TableHead className="w-auto px-5 py-3 font-bold text-zinc-700 dark:text-zinc-200 text-base tracking-wide">#</TableHead>}
               {columnVisibility.product && <TableHead className="px-5 py-3 font-bold text-zinc-700 dark:text-zinc-200 text-base tracking-wide">Product</TableHead>}
               {columnVisibility.shortDescription && <TableHead className="px-5 py-3 font-bold text-zinc-700 dark:text-zinc-200 text-base tracking-wide">Short Description</TableHead>}
@@ -437,11 +460,12 @@ export const ProductsTable: React.FC<ProductsTableProps> = ({
               {columnVisibility.actions && <TableHead className="text-right px-5 py-3 font-bold text-zinc-700 dark:text-zinc-200 text-base tracking-wide rounded-tr-2xl">Actions</TableHead>}
             </TableRow>
           </TableHeader>
-          <TableBody>
+          <TableBody className="min-h-[400px]">
             {isLoading ? (
               // Loading skeletons
               Array.from({ length: 6 }).map((_, i) => (
                 <TableRow key={i} className={i % 2 === 0 ? 'bg-zinc-50 dark:bg-zinc-950/80' : 'bg-white dark:bg-zinc-900/80'}>
+                  {/* Checkbox column skeleton */}
                   <TableCell className="px-5 py-4 border-b border-zinc-200 dark:border-zinc-800">
                     <Skeleton className="h-4 w-4 rounded" />
                   </TableCell>
@@ -502,7 +526,7 @@ export const ProductsTable: React.FC<ProductsTableProps> = ({
               <TableRow>
                 <TableCell 
                   colSpan={
-                    1 + // checkbox column
+                    1 + // checkbox column (always present now)
                     Object.values(columnVisibility).filter(Boolean).length
                   } 
                   className="text-center py-8"
@@ -565,7 +589,7 @@ export const ProductsTable: React.FC<ProductsTableProps> = ({
                       {product.short_description ? (
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <div className="text-sm truncate cursor-help">
+                            <div className="text-sm truncate">
                               {product.short_description}
                             </div>
                           </TooltipTrigger>
@@ -583,7 +607,7 @@ export const ProductsTable: React.FC<ProductsTableProps> = ({
                       {product.description ? (
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <div className="text-sm line-clamp-2 cursor-help">
+                            <div className="text-sm line-clamp-2">
                               {product.description}
                             </div>
                           </TooltipTrigger>
@@ -626,8 +650,12 @@ export const ProductsTable: React.FC<ProductsTableProps> = ({
                   {columnVisibility.status && (
                     <TableCell className="px-5 py-4 border-b border-zinc-200 dark:border-zinc-800">
                       <Badge
-                        variant={product.is_locked ? 'destructive' : 'default'}
-                        className={product.is_locked ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}
+                        variant="outline"
+                        className={`rounded-full px-3 py-1 text-xs font-medium border ${
+                          product.is_locked 
+                            ? 'bg-red-50 border-red-200 text-red-700 dark:bg-red-950/20 dark:border-red-900 dark:text-red-400' 
+                            : 'bg-green-50 border-green-200 text-green-700 dark:bg-green-950/20 dark:border-green-900 dark:text-green-400'
+                        }`}
                       >
                         {product.is_locked ? (
                           <>
@@ -721,7 +749,8 @@ export const ProductsTable: React.FC<ProductsTableProps> = ({
           onProductUpdated={() => {
             console.log('Product updated');
             setEditingProduct(null);
-            success('Product updated successfully');
+            toast.success('Product updated successfully');
+            refetchProducts();
           }}
         />
       )}
