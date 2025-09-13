@@ -20,7 +20,7 @@ export interface Product {
   description?: string;
   short_description?: string;
   price: number;
-  category_id: number; // Category ID for API calls
+  category_id: string;
   category_name: string; // Category name for display
   rating?: number;
   images?: string[];
@@ -34,7 +34,7 @@ export interface CreateProductRequest {
   description?: string;
   short_description?: string;
   price: number;
-  category_id: number; // Backend expects category_id, not category name
+  category_id: string; // Backend expects category_id, not category name
   rating?: number;
   images?: File[];
 }

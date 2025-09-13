@@ -38,8 +38,8 @@ const productFormSchema = z.object({
   title: z.string().min(1, 'Product title is required').max(150, 'Title too long'),
   description: z.string().optional(),
   short_description: z.string().optional(),
-  price: z.number().min(0.01, 'Price must be greater than 0'),
-  category_id: z.number().min(1, 'Please select a category'),
+  price: z.number().min(100, 'Price must be greater than 0'),
+  category_id: z.string().min(1, 'Please select a category'),
   rating: z.number().min(0).max(5).optional(),
   images: z.array(z.instanceof(File)).optional(),
 });
@@ -220,7 +220,7 @@ export const CreateProductDialog: React.FC<CreateProductDialogProps> = ({
                 <FormItem>
                   <FormLabel>Category *</FormLabel>
                   <Select 
-                    onValueChange={(value) => field.onChange(value ? parseInt(value) : undefined)} 
+                    onValueChange={(value) => field.onChange(value ? (value) : undefined)} 
                     value={field.value?.toString() || ""}
                   >
                     <FormControl>

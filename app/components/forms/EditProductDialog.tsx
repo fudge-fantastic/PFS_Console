@@ -41,7 +41,7 @@ const editProductFormSchema = z.object({
   description: z.string().optional(),
   short_description: z.string().optional(),
   price: z.number().min(0.01, 'Price must be greater than 0'),
-  category_id: z.number().min(1, 'Category is required'),
+  category_id: z.string().min(1, 'Category is required'),
   rating: z.number().min(0).max(5).optional(),
 });
 
@@ -77,8 +77,8 @@ export const EditProductDialog: React.FC<EditProductDialogProps> = ({
       title: product?.title || '',
       description: product?.description || '',
       short_description: product?.short_description || '',
-      price: product?.price || 0.01,
-      category_id: product?.category_id || 0,
+      price: product?.price || 100,
+      category_id: product?.category_id || '',
       rating: product?.rating || 0,
     },
   });
@@ -111,7 +111,7 @@ export const EditProductDialog: React.FC<EditProductDialogProps> = ({
         description: product.description || '',
         short_description: product.short_description || '',
         price: product.price,
-        category_id: product.category_id || 0,
+        category_id: product.category_id || '',
         rating: product.rating || 0,
       });
       setExistingImages(product.images || []);
@@ -275,7 +275,7 @@ export const EditProductDialog: React.FC<EditProductDialogProps> = ({
                 <FormItem>
                   <FormLabel>Category *</FormLabel>
                   <Select 
-                    onValueChange={(value) => field.onChange(parseInt(value))} 
+                    onValueChange={(value) => field.onChange((value))} 
                     value={field.value?.toString()}
                   >
                     <FormControl>
