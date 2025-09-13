@@ -56,6 +56,7 @@ export default function Products() {
     toast.success('Product created successfully');
     setShowCreateDialog(false);
     setTableKey(prev => prev + 1); // Force table refresh
+    fetchCategories(); // Refresh categories after product creation
   };
 
   return (
