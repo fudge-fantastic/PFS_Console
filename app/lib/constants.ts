@@ -10,14 +10,14 @@ export const API_ENDPOINTS = {
   USERS_ME: '/users/me',
   USERS_LIST: '/users/',
   USERS_BY_ID: (id: number) => `/users/${id}`,
-  
+
   // Products
   PRODUCTS_LIST: '/products/',
   PRODUCTS_UNLOCKED: '/products/unlocked',
   PRODUCTS_BY_CATEGORY: '/products/category',
-  PRODUCTS_BY_ID: (id: number) => `/products/${id}`,
-  PRODUCTS_LOCK: (id: number) => `/products/${id}/lock`,
-  PRODUCTS_UNLOCK: (id: number) => `/products/${id}/unlock`,
+  PRODUCTS_BY_ID: (id: string) => `/products/${id}`,
+  PRODUCTS_LOCK: (id: string) => `/products/${id}/lock`,
+  PRODUCTS_UNLOCK: (id: string) => `/products/${id}/unlock`,
   PRODUCTS_CATEGORIES: '/categories', // New endpoint for dynamic categories
   
   // Inquiry System

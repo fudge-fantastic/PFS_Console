@@ -12,6 +12,7 @@
 3. [API Endpoints](#api-endpoints)
    - [Authentication Endpoints](#authentication-endpoints)
    - [User Management](#user-management)
+   - [Category Management](#category-management)
    - [Product Management](#product-management)
    - [Inquiry System](#inquiry-system)
 4. [Data Models](#data-models)
@@ -246,6 +247,223 @@ Retrieve specific user details by user ID.
 
 ---
 
+### 🏷️ Category Management
+
+#### Create Category (Admin Only)
+```http
+POST /categories/
+```
+
+Create a new product category.
+
+**Authentication:** Required (ADMIN only)
+
+**Request Body:**
+```json
+{
+  "name": "Custom Magnets",
+  "description": "Custom personalized magnets for special occasions"
+}
+```
+
+**Response (201 Created):**
+```json
+{
+  "success": true,
+  "message": "Category created successfully",
+  "data": {
+    "id": "507f1f77bcf86cd799439011",
+    "name": "Custom Magnets",
+    "description": "Custom personalized magnets for special occasions",
+    "is_active": true,
+    "created_at": "2025-01-15T10:30:00Z"
+  }
+}
+```
+
+**Validation Rules:**
+- `name`: Required, max 100 characters, must be unique
+- `description`: Optional, max 500 characters
+
+---
+
+#### List All Categories
+```http
+GET /categories/?skip=0&limit=100&active_only=false
+```
+
+Retrieve paginated list of all categories with optional filtering.
+
+**Authentication:** Not required (Public endpoint)
+
+**Query Parameters:**
+- `skip` (int, optional): Records to skip (default: 0)
+- `limit` (int, optional): Max records (default: 100, max: 1000)
+- `active_only` (bool, optional): Show only active categories (default: false)
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Retrieved 3 categories successfully",
+  "data": [
+    {
+      "id": "507f1f77bcf86cd799439011",
+      "name": "Photo Magnets",
+      "description": "Custom photo magnets for memories",
+      "is_active": true,
+      "created_at": "2025-01-15T10:30:00Z",
+      "updated_at": "2025-01-15T10:30:00Z"
+    },
+    {
+      "id": "507f1f77bcf86cd799439012",
+      "name": "Fridge Magnets",
+      "description": "Decorative fridge magnets",
+      "is_active": true,
+      "created_at": "2025-01-15T10:30:00Z",
+      "updated_at": "2025-01-15T10:30:00Z"
+    }
+  ],
+  "total": 3
+}
+```
+
+---
+
+#### List Active Categories Only
+```http
+GET /categories/active?skip=0&limit=100
+```
+
+Retrieve only active categories (public endpoint for customer-facing interfaces).
+
+**Authentication:** Not required (Public endpoint)
+
+**Query Parameters:**
+- `skip` (int, optional): Records to skip (default: 0)
+- `limit` (int, optional): Max records (default: 100, max: 1000)
+
+**Use Case:** Customer-facing category selection
+
+**Response:** Same format as "List All Categories" but only active categories
+
+---
+
+#### Get Single Category
+```http
+GET /categories/{category_id}
+```
+
+Retrieve detailed information for a specific category.
+
+**Authentication:** Not required (Public endpoint)
+
+**Path Parameters:**
+- `category_id` (string): Category ObjectId
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Category details retrieved successfully",
+  "data": {
+    "id": "507f1f77bcf86cd799439011",
+    "name": "Photo Magnets",
+    "description": "Custom photo magnets for memories",
+    "is_active": true,
+    "created_at": "2025-01-15T10:30:00Z",
+    "updated_at": "2025-01-15T10:30:00Z"
+  }
+}
+```
+
+---
+
+#### Update Category (Admin Only)
+```http
+PUT /categories/{category_id}
+```
+
+Update an existing category. All fields are optional.
+
+**Authentication:** Required (ADMIN only)
+
+**Path Parameters:**
+- `category_id` (string): Category ObjectId to update
+
+**Request Body:**
+```json
+{
+  "name": "Updated Category Name",
+  "description": "Updated description",
+  "is_active": false
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Category updated successfully",
+  "data": {
+    "id": "507f1f77bcf86cd799439011",
+    "name": "Updated Category Name",
+    "description": "Updated description",
+    "is_active": false,
+    "updated_at": "2025-01-15T11:45:00Z"
+  }
+}
+```
+
+---
+
+#### Delete Category (Admin Only)
+```http
+DELETE /categories/{category_id}?hard_delete=false
+```
+
+Delete a category. By default performs soft delete (deactivation).
+
+**Authentication:** Required (ADMIN only)
+
+**Path Parameters:**
+- `category_id` (string): Category ObjectId to delete
+
+**Query Parameters:**
+- `hard_delete` (bool, optional): Permanently delete category (default: false)
+
+**Soft Delete Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Category deactivated successfully",
+  "data": {
+    "id": "507f1f77bcf86cd799439011",
+    "deleted": false
+  }
+}
+```
+
+**Hard Delete Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Category permanently deleted successfully",
+  "data": {
+    "id": "507f1f77bcf86cd799439011",
+    "deleted": true
+  }
+}
+```
+
+**Important Notes:**
+- Soft delete deactivates the category (sets `is_active` to false)
+- Hard delete permanently removes the category from database
+- Categories with associated products should be handled carefully
+- Use soft delete for preserving data integrity
+
+---
+
 ### 🛍️ Product Management
 
 #### Create Product (Admin Only)
@@ -260,16 +478,15 @@ Create a new product with images.
 **Request Body (Multipart Form Data):**
 ```
 title: "Beautiful Photo Magnet" (required, max 150 chars)
+description: "Detailed product description" (optional, max 1000 chars)
+short_description: "Brief description" (optional, max 50 chars)
 price: 299.99 (required, > 0)
-category: "Photo Magnets" (required, enum)
+category_id: "507f1f77bcf86cd799439011" (required, valid ObjectId)
 rating: 4.5 (optional, 0.0-5.0, default: 0.0)
 images: [file1.jpg, file2.png] (optional, max 5 files)
 ```
 
-**Product Categories:**
-- `"Photo Magnets"`
-- `"Fridge Magnets"`
-- `"Retro Prints"`
+**Note:** `category_id` must be a valid ObjectId of an existing category. Use the category endpoints to get available category IDs.
 
 **Response (201 Created):**
 ```json
@@ -277,10 +494,13 @@ images: [file1.jpg, file2.png] (optional, max 5 files)
   "success": true,
   "message": "Product created successfully",
   "data": {
-    "id": 1,
+    "id": "507f1f77bcf86cd799439013",
     "title": "Beautiful Photo Magnet",
+    "description": "Detailed product description",
+    "short_description": "Brief description",
     "price": 299.99,
-    "category": "Photo Magnets",
+    "category_id": "507f1f77bcf86cd799439011",
+    "category_name": "Photo Magnets",
     "rating": 4.5,
     "images": ["/uploads/products/uuid-image1.jpg"],
     "is_locked": false,
@@ -293,7 +513,7 @@ images: [file1.jpg, file2.png] (optional, max 5 files)
 
 #### List All Products
 ```http
-GET /products/?skip=0&limit=100&category=Photo%20Magnets
+GET /products/?skip=0&limit=100&category_id=507f1f77bcf86cd799439011
 ```
 
 Retrieve paginated list of all products with optional category filtering.
@@ -303,7 +523,7 @@ Retrieve paginated list of all products with optional category filtering.
 **Query Parameters:**
 - `skip` (int, optional): Records to skip (default: 0)
 - `limit` (int, optional): Max records (default: 100, max: 1000)
-- `category` (string, optional): Filter by category
+- `category_id` (string, optional): Filter by category ObjectId
 
 **Response (200 OK):**
 ```json
@@ -312,10 +532,13 @@ Retrieve paginated list of all products with optional category filtering.
   "message": "Retrieved 15 products successfully",
   "data": [
     {
-      "id": 1,
+      "id": "507f1f77bcf86cd799439013",
       "title": "Beautiful Photo Magnet",
+      "description": "Detailed product description",
+      "short_description": "Brief description",
       "price": 299.99,
-      "category": "Photo Magnets",
+      "category_id": "507f1f77bcf86cd799439011",
+      "category_name": "Photo Magnets",
       "rating": 4.5,
       "images": ["/uploads/products/uuid-image1.jpg"],
       "is_locked": false,
@@ -331,7 +554,7 @@ Retrieve paginated list of all products with optional category filtering.
 
 #### List Unlocked Products Only
 ```http
-GET /products/unlocked?skip=0&limit=100&category=Photo%20Magnets
+GET /products/unlocked?skip=0&limit=100&category_id=507f1f77bcf86cd799439011
 ```
 
 Retrieve only products that are unlocked (available for purchase).
@@ -341,35 +564,9 @@ Retrieve only products that are unlocked (available for purchase).
 **Query Parameters:**
 - `skip` (int, optional): Records to skip (default: 0)
 - `limit` (int, optional): Max records (default: 100, max: 1000)
-- `category` (string, optional): Filter by category
+- `category_id` (string, optional): Filter by category ObjectId
 
 **Use Case:** Customer-facing product catalog
-
-**Response:** Same format as "List All Products"
-
----
-
-#### Get Products by Category
-```http
-GET /products/category/{category}?skip=0&limit=100&unlocked_only=false
-```
-
-Retrieve products filtered by specific category.
-
-**Authentication:** Not required (Public endpoint)
-
-**Path Parameters:**
-- `category` (string): Product category (URL encoded)
-
-**Query Parameters:**
-- `skip` (int, optional): Records to skip (default: 0)
-- `limit` (int, optional): Max records (default: 100, max: 1000)
-- `unlocked_only` (bool, optional): Show only unlocked products (default: false)
-
-**Example:**
-```http
-GET /products/category/Photo%20Magnets?unlocked_only=true
-```
 
 **Response:** Same format as "List All Products"
 
@@ -385,7 +582,7 @@ Retrieve detailed information for a specific product.
 **Authentication:** Not required (Public endpoint)
 
 **Path Parameters:**
-- `product_id` (int): Product ID
+- `product_id` (string): Product ObjectId
 
 **Response (200 OK):**
 ```json
@@ -393,10 +590,13 @@ Retrieve detailed information for a specific product.
   "success": true,
   "message": "Product details retrieved successfully",
   "data": {
-    "id": 1,
+    "id": "507f1f77bcf86cd799439013",
     "title": "Beautiful Photo Magnet",
+    "description": "Detailed product description",
+    "short_description": "Brief description",
     "price": 299.99,
-    "category": "Photo Magnets",
+    "category_id": "507f1f77bcf86cd799439011",
+    "category_name": "Photo Magnets",
     "rating": 4.5,
     "images": [
       "/uploads/products/uuid-image1.jpg",
@@ -421,14 +621,16 @@ Update an existing product. All fields are optional.
 **Authentication:** Required (ADMIN only)
 
 **Path Parameters:**
-- `product_id` (int): Product ID to update
+- `product_id` (string): Product ObjectId to update
 
 **Request Body (Multipart Form Data):**
 ```
-title: "Updated Title" (optional)
-price: 399.99 (optional)
-category: "Fridge Magnets" (optional)
-rating: 4.8 (optional)
+title: "Updated Title" (optional, max 150 chars)
+description: "Updated description" (optional, max 1000 chars)
+short_description: "Updated brief description" (optional, max 50 chars)
+price: 399.99 (optional, > 0)
+category_id: "507f1f77bcf86cd799439012" (optional, valid ObjectId)
+rating: 4.8 (optional, 0.0-5.0)
 images: [new_file1.jpg] (optional, replaces all existing images)
 ```
 
@@ -440,10 +642,13 @@ images: [new_file1.jpg] (optional, replaces all existing images)
   "success": true,
   "message": "Product updated successfully",
   "data": {
-    "id": 1,
+    "id": "507f1f77bcf86cd799439013",
     "title": "Updated Title",
+    "description": "Updated description",
+    "short_description": "Updated brief description",
     "price": 399.99,
-    "category": "Fridge Magnets",
+    "category_id": "507f1f77bcf86cd799439012",
+    "category_name": "Fridge Magnets",
     "rating": 4.8,
     "images": ["/uploads/products/new-uuid-image1.jpg"],
     "is_locked": false,
@@ -464,7 +669,7 @@ Permanently delete a product and its associated images.
 **Authentication:** Required (ADMIN only)
 
 **Path Parameters:**
-- `product_id` (int): Product ID to delete
+- `product_id` (string): Product ObjectId to delete
 
 **Response (200 OK):**
 ```json
@@ -472,7 +677,7 @@ Permanently delete a product and its associated images.
   "success": true,
   "message": "Product deleted successfully",
   "data": {
-    "id": 1
+    "id": "507f1f77bcf86cd799439013"
   }
 }
 ```
@@ -489,7 +694,7 @@ Lock a product to prevent modifications and hide from customer catalog.
 **Authentication:** Required (ADMIN only)
 
 **Path Parameters:**
-- `product_id` (int): Product ID to lock
+- `product_id` (string): Product ObjectId to lock
 
 **Use Cases:**
 - Temporarily remove from sale
@@ -502,7 +707,7 @@ Lock a product to prevent modifications and hide from customer catalog.
   "success": true,
   "message": "Product locked successfully",
   "data": {
-    "id": 1,
+    "id": "507f1f77bcf86cd799439013",
     "title": "Beautiful Photo Magnet",
     "is_locked": true
   }
@@ -521,7 +726,7 @@ Unlock a product to allow modifications and show in customer catalog.
 **Authentication:** Required (ADMIN only)
 
 **Path Parameters:**
-- `product_id` (int): Product ID to unlock
+- `product_id` (string): Product ObjectId to unlock
 
 **Response (200 OK):**
 ```json
@@ -529,7 +734,7 @@ Unlock a product to allow modifications and show in customer catalog.
   "success": true,
   "message": "Product unlocked successfully",
   "data": {
-    "id": 1,
+    "id": "507f1f77bcf86cd799439013",
     "title": "Beautiful Photo Magnet",
     "is_locked": false
   }
@@ -618,9 +823,21 @@ Test endpoint to verify email service configuration.
 ### User Model
 ```json
 {
-  "id": 1,
+  "id": "507f1f77bcf86cd799439010",
   "email": "user@example.com",
   "role": "USER", // "USER" | "ADMIN"
+  "created_at": "2025-01-15T10:30:00Z",
+  "updated_at": "2025-01-15T10:30:00Z"
+}
+```
+
+### Category Model
+```json
+{
+  "id": "507f1f77bcf86cd799439011",
+  "name": "Photo Magnets",
+  "description": "Custom photo magnets for memories",
+  "is_active": true,
   "created_at": "2025-01-15T10:30:00Z",
   "updated_at": "2025-01-15T10:30:00Z"
 }
@@ -629,10 +846,13 @@ Test endpoint to verify email service configuration.
 ### Product Model
 ```json
 {
-  "id": 1,
+  "id": "507f1f77bcf86cd799439013",
   "title": "Beautiful Photo Magnet",
+  "description": "Detailed product description",
+  "short_description": "Brief description",
   "price": 299.99,
-  "category": "Photo Magnets", // "Photo Magnets" | "Fridge Magnets" | "Retro Prints"
+  "category_id": "507f1f77bcf86cd799439011", // Reference to Category ObjectId
+  "category_name": "Photo Magnets", // Populated category name (read-only)
   "rating": 4.5, // 0.0 to 5.0
   "images": [
     "/uploads/products/uuid-image1.jpg",
@@ -854,13 +1074,27 @@ curl -X POST "http://localhost:8000/auth/login" \
 curl -X GET "http://localhost:8000/products/"
 ```
 
+#### Create Category (Admin)
+```bash
+curl -X POST "http://localhost:8000/categories/" \
+  -H "Authorization: Bearer your-admin-token" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Custom Magnets","description":"Custom personalized magnets"}'
+```
+
+#### List Categories
+```bash
+curl -X GET "http://localhost:8000/categories/?active_only=true"
+```
+
 #### Create Product (Admin)
 ```bash
 curl -X POST "http://localhost:8000/products/" \
   -H "Authorization: Bearer your-admin-token" \
   -F "title=Test Product" \
+  -F "description=A test product description" \
   -F "price=99.99" \
-  -F "category=Photo Magnets" \
+  -F "category_id=507f1f77bcf86cd799439011" \
   -F "images=@image1.jpg"
 ```
 
@@ -886,7 +1120,8 @@ The API behavior can be customized via environment variables or `.env` file:
 
 ```env
 # Database
-DATABASE_URL=postgresql://username:password@localhost:5432/pixelforge_db
+MONGODB_URL=mongodb://localhost:27017
+MONGODB_DATABASE=pixelforge_db
 
 # JWT
 SECRET_KEY=your-super-secret-jwt-key
@@ -906,15 +1141,16 @@ MAX_FILE_SIZE=5242880
 ### Development Setup
 1. Install dependencies: `pip install -r requirements.txt`
 2. Set up environment variables
-3. Initialize database: `python scripts/init_db.py`
-4. Run server: `python run.py` or `uvicorn app.main:app --reload`
-5. Access documentation: `http://localhost:8000/docs`
+3. Initialize MongoDB database: `python scripts/init_db.py`
+4. Seed dummy data (optional): `python scripts/seed_dummy_data.py`
+5. Run server: `python run.py` or `uvicorn app.main:app --reload --host 0.0.0.0 --port 8000`
+6. Access documentation: `http://localhost:8000/docs`
 
 ### Production Deployment
 - Use environment-specific configuration
 - Enable HTTPS
 - Set up proper CORS origins
-- Configure production database
+- Configure production MongoDB database with authentication
 - Set up proper logging
 - Implement monitoring and alerts
 

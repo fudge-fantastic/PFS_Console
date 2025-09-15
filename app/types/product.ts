@@ -15,7 +15,7 @@ export interface CategoriesResponse {
 }
 
 export interface Product {
-  id: number;
+  id: string;
   title: string;
   description?: string;
   short_description?: string;
@@ -40,7 +40,7 @@ export interface CreateProductRequest {
 }
 
 export interface UpdateProductRequest extends Partial<CreateProductRequest> {
-  id: number;
+  id: string;
 }
 
 export interface ProductResponse {

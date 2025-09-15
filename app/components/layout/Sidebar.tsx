@@ -5,7 +5,8 @@ import {
   Package,
   Settings,
   Plus,
-  Mail
+  Mail,
+  FolderOpen
 } from 'lucide-react';
 import {
   Sidebar as ShadcnSidebar,
@@ -22,12 +23,14 @@ import {
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: Home },
+  { name: 'Categories', href: '/categories', icon: FolderOpen },
   { name: 'Products', href: '/products', icon: Package },
   { name: 'Inquiries', href: '/inquiries', icon: Mail },
 ];
 
 const secondaryNavigation = [
   { name: 'Create Product', href: '/products/create', icon: Plus },
+  { name: 'Create Category', href: '/categories/create', icon: FolderOpen },
 ];
 
 export function Sidebar() {
@@ -65,7 +68,7 @@ export function Sidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* <SidebarGroup>
+        <SidebarGroup>
           <SidebarGroupLabel>Quick Actions</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -86,7 +89,7 @@ export function Sidebar() {
               ))}
             </SidebarMenu>
           </SidebarGroupContent>
-        </SidebarGroup> */}
+        </SidebarGroup>
       </SidebarContent>
     </ShadcnSidebar>
   );

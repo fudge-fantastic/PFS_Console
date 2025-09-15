@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router';
 import {
   Table,
   TableBody,
@@ -37,7 +38,6 @@ import {
 import { DataTablePagination } from './DataTablePagination';
 import { BulkActionsBar } from '../advanced/BulkActionsBar';
 import { EditProductDialog } from '../forms/EditProductDialog';
-import { ProductDetailModal } from './ProductDetailModal';
 import { useProducts } from '../../hooks/useProducts';
 import { toast } from 'sonner';
 import { productService } from '../../services/product.service';
@@ -74,7 +74,7 @@ export const ProductsTable: React.FC<ProductsTableProps> = ({
   
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [viewingProduct, setViewingProduct] = useState<Product | null>(null);
+  const navigate = useNavigate();
 
   // Column visibility state with localStorage persistence
   const [columnVisibility, setColumnVisibility] = useState(() => {
@@ -139,7 +139,7 @@ export const ProductsTable: React.FC<ProductsTableProps> = ({
   };
 
   const handleViewProduct = (product: Product) => {
-    setViewingProduct(product);
+    navigate(`/products/${product.id}`);
   };
 
   const handleEditProduct = (product: Product) => {
@@ -208,14 +208,13 @@ export const ProductsTable: React.FC<ProductsTableProps> = ({
     if (selectedProducts.length === products.length) {
       setSelectedProducts([]);
     } else {
-      setSelectedProducts(products.map((p) => String(p.id)));
+      setSelectedProducts(products.map((p) => p.id));
     }
   };
 
-  const handleSelectProduct = (productId: number) => {
-    const id = String(productId);
+  const handleSelectProduct = (productId: string) => {
     setSelectedProducts((prev) =>
-      prev.includes(id) ? prev.filter((pid) => pid !== id) : [...prev, id]
+      prev.includes(productId) ? prev.filter((pid) => pid !== productId) : [...prev, productId]
     );
   };
 
@@ -236,7 +235,7 @@ export const ProductsTable: React.FC<ProductsTableProps> = ({
         'Lock selected products? Locked products will be hidden from customers.',
       action: async (selectedIds: string[]) => {
         await Promise.all(
-          selectedIds.map((id) => productService.lockProduct(Number(id)))
+          selectedIds.map((id) => productService.lockProduct(id))
         );
         toast.success(`Locked ${selectedIds.length} products`);
         setSelectedProducts([]);
@@ -249,7 +248,7 @@ export const ProductsTable: React.FC<ProductsTableProps> = ({
       icon: <Unlock className="h-4 w-4" />,
       action: async (selectedIds: string[]) => {
         await Promise.all(
-          selectedIds.map((id) => productService.unlockProduct(Number(id)))
+          selectedIds.map((id) => productService.unlockProduct(id))
         );
         toast.success(`Unlocked ${selectedIds.length} products`);
         setSelectedProducts([]);
@@ -265,7 +264,7 @@ export const ProductsTable: React.FC<ProductsTableProps> = ({
         'Permanently delete the selected products? This cannot be undone.',
       action: async (selectedIds: string[]) => {
         await Promise.all(
-          selectedIds.map((id) => productService.deleteProduct(Number(id)))
+          selectedIds.map((id) => productService.deleteProduct(id))
         );
         toast.success(`Deleted ${selectedIds.length} products`);
         setSelectedProducts([]);
@@ -299,7 +298,7 @@ export const ProductsTable: React.FC<ProductsTableProps> = ({
       <BulkActionsBar
         selectedItems={selectedProducts}
         totalItems={products.length}
-        onSelectAll={() => setSelectedProducts(products.map((p) => String(p.id)))}
+        onSelectAll={() => setSelectedProducts(products.map((p) => p.id))}
         onDeselectAll={() => setSelectedProducts([])}
         operations={productBulkOperations}
         itemType="products"
@@ -554,7 +553,7 @@ export const ProductsTable: React.FC<ProductsTableProps> = ({
                   {/* Bulk selection checkbox per row */}
                   <TableCell className="px-5 py-4 rounded-l-xl border-b border-zinc-200 dark:border-zinc-800">
                     <Checkbox
-                      checked={selectedProducts.includes(String(product.id))}
+                      checked={selectedProducts.includes(product.id)}
                       onCheckedChange={() => handleSelectProduct(product.id)}
                     />
                   </TableCell>
@@ -755,14 +754,6 @@ export const ProductsTable: React.FC<ProductsTableProps> = ({
         />
       )}
 
-      {/* Product Detail Modal */}
-      <ProductDetailModal
-        product={viewingProduct}
-        open={!!viewingProduct}
-        onOpenChange={(open) => {
-          if (!open) setViewingProduct(null);
-        }}
-      />
     </div>
   );
 };

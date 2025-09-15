@@ -96,7 +96,7 @@ export const productService = {
   },
 
   // Get product by ID
-  getProduct: async (id: number): Promise<Product> => {
+  getProduct: async (id: string): Promise<Product> => {
     const response = await apiClient.get<{ success: boolean; data: Product }>(
       API_ENDPOINTS.PRODUCTS_BY_ID(id)
     );
@@ -183,7 +183,7 @@ export const productService = {
   },
 
   // Lock product (admin only)
-  lockProduct: async (id: number): Promise<Product> => {
+  lockProduct: async (id: string): Promise<Product> => {
     const response = await apiClient.patch<{ success: boolean; data: Product }>(
       API_ENDPOINTS.PRODUCTS_LOCK(id)
     );
@@ -191,7 +191,7 @@ export const productService = {
   },
 
   // Unlock product (admin only)
-  unlockProduct: async (id: number): Promise<Product> => {
+  unlockProduct: async (id: string): Promise<Product> => {
     const response = await apiClient.patch<{ success: boolean; data: Product }>(
       API_ENDPOINTS.PRODUCTS_UNLOCK(id)
     );
@@ -199,7 +199,7 @@ export const productService = {
   },
 
   // Delete product (admin only)
-  deleteProduct: async (id: number): Promise<void> => {
+  deleteProduct: async (id: string): Promise<void> => {
     await apiClient.delete(API_ENDPOINTS.PRODUCTS_BY_ID(id));
   },
 };
