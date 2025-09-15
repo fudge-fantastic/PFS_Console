@@ -1,6 +1,7 @@
 import { Navigate } from 'react-router';
 import { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
+import { useProducts } from '../hooks/useProducts';
 import { AdminLayout } from '../components/layout/AdminLayout';
 import { ProductsTable } from '../components/data-display/ProductsTable';
 import { CreateProductDialog } from '../components/forms/CreateProductDialog';
@@ -16,9 +17,17 @@ export default function ProductsPage() {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'locked'>('all');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [categories, setCategories] = useState<string[]>([]);
   const [isLoadingCategories, setIsLoadingCategories] = useState(true);
+
+  // Use the products hook with filters
+  const { refetch: refetchProducts } = useProducts({
+    searchTerm,
+    categoryFilter,
+    statusFilter,
+  });
 
   // Fetch categories on component mount
   useEffect(() => {
@@ -36,6 +45,12 @@ export default function ProductsPage() {
     } finally {
       setIsLoadingCategories(false);
     }
+  };
+
+  const handleRefresh = () => {
+    fetchCategories();
+    refetchProducts();
+    toast.success('Products and categories refreshed');
   };
 
   if (authLoading) {
@@ -66,7 +81,7 @@ export default function ProductsPage() {
           </div>
           
           <div className="flex space-x-3">
-            <Button variant="outline" size="sm" onClick={fetchCategories}>
+            <Button variant="outline" size="sm" onClick={handleRefresh}>
               <RefreshCw className="mr-2 h-4 w-4" />
               Refresh
             </Button>
@@ -115,6 +130,21 @@ export default function ProductsPage() {
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* Status Filter */}
+              <div className="w-full sm:w-48">
+                <Select value={statusFilter} onValueChange={(value: 'all' | 'active' | 'locked') => setStatusFilter(value)}>
+                  <SelectTrigger>
+                    <Filter className="mr-2 h-4 w-4" />
+                    <SelectValue placeholder="Filter by status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Products</SelectItem>
+                    <SelectItem value="active">Active Only</SelectItem>
+                    <SelectItem value="locked">Locked Only</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -128,7 +158,15 @@ export default function ProductsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="p-0">
-            <ProductsTable searchTerm={searchTerm} categoryFilter={categoryFilter} />
+            <ProductsTable
+              searchTerm={searchTerm}
+              categoryFilter={categoryFilter}
+              statusFilter={statusFilter}
+              categories={categories}
+              onSearchChange={setSearchTerm}
+              onCategoryChange={setCategoryFilter}
+              onStatusChange={setStatusFilter}
+            />
           </CardContent>
         </Card>
 
@@ -137,8 +175,9 @@ export default function ProductsPage() {
           open={showCreateDialog}
           onOpenChange={setShowCreateDialog}
           onProductCreated={() => {
-            // TODO: Refresh products table
-            console.log('Product created, refreshing table...');
+            refetchProducts();
+            fetchCategories();
+            toast.success('Product created successfully');
           }}
         />
       </div>

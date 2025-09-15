@@ -5,11 +5,10 @@ import { AdminLayout } from '../components/layout/AdminLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
-import { 
-  Users, 
-  Package, 
-  ShoppingCart, 
-  TrendingUp,
+import {
+  Users,
+  Package,
+  ShoppingCart,
   Activity,
   AlertCircle,
   RefreshCw,
@@ -132,110 +131,71 @@ export default function Dashboard() {
           )}
         </div>
 
-        {/* Content grid */}
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          {/* Recent Activity */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Recent Activity</CardTitle>
-              <CardDescription>
-                Latest updates from your admin panel
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {isLoading ? (
-                  // Loading skeletons
-                  Array.from({ length: 3 }).map((_, i) => (
-                    <div key={i} className="flex items-center space-x-4">
-                      <div className="flex-shrink-0">
-                        <div className="h-8 w-8 rounded-full bg-gray-200 animate-pulse"></div>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="h-4 bg-gray-200 rounded animate-pulse mb-1 w-32"></div>
-                        <div className="h-3 bg-gray-200 rounded animate-pulse w-24"></div>
-                      </div>
-                      <div className="flex-shrink-0">
-                        <div className="h-3 bg-gray-200 rounded animate-pulse w-16"></div>
-                      </div>
+        {/* Recent Activity */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Recent Activity</CardTitle>
+            <CardDescription>
+              Latest updates from your admin panel
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {isLoading ? (
+                // Loading skeletons
+                Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="flex items-center space-x-4">
+                    <div className="flex-shrink-0">
+                      <div className="h-8 w-8 rounded-full bg-gray-200 animate-pulse"></div>
                     </div>
-                  ))
-                ) : recentActivity.length === 0 ? (
-                  <div className="text-center py-4">
-                    <p className="text-sm text-muted-foreground">No recent activity</p>
+                    <div className="flex-1 min-w-0">
+                      <div className="h-4 bg-gray-200 rounded animate-pulse mb-1 w-32"></div>
+                      <div className="h-3 bg-gray-200 rounded animate-pulse w-24"></div>
+                    </div>
+                    <div className="flex-shrink-0">
+                      <div className="h-3 bg-gray-200 rounded animate-pulse w-16"></div>
+                    </div>
                   </div>
-                ) : (
-                  recentActivity.map((activity) => (
-                    <div key={activity.id} className="flex items-center space-x-4">
-                      <div className="flex-shrink-0">
-                        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                          {activity.type === 'product' ? (
-                            activity.action.includes('locked') ? (
-                              <Lock className="h-4 w-4 text-yellow-600" />
-                            ) : (
-                              <Package className="h-4 w-4 text-primary" />
-                            )
-                          ) : activity.type === 'user' ? (
-                            <Users className="h-4 w-4 text-primary" />
+                ))
+              ) : recentActivity.length === 0 ? (
+                <div className="text-center py-4">
+                  <p className="text-sm text-muted-foreground">No recent activity</p>
+                </div>
+              ) : (
+                recentActivity.map((activity) => (
+                  <div key={activity.id} className="flex items-center space-x-4">
+                    <div className="flex-shrink-0">
+                      <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                        {activity.type === 'product' ? (
+                          activity.action.includes('locked') ? (
+                            <Lock className="h-4 w-4 text-yellow-600" />
                           ) : (
-                            <AlertCircle className="h-4 w-4 text-primary" />
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900 dark:text-white">
-                          {activity.action}
-                        </p>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
-                          {activity.item}
-                        </p>
-                      </div>
-                      <div className="flex-shrink-0 text-sm text-gray-500 dark:text-gray-400">
-                        {activity.time}
+                            <Package className="h-4 w-4 text-primary" />
+                          )
+                        ) : activity.type === 'user' ? (
+                          <Users className="h-4 w-4 text-primary" />
+                        ) : (
+                          <AlertCircle className="h-4 w-4 text-primary" />
+                        )}
                       </div>
                     </div>
-                  ))
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Quick Actions */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
-              <CardDescription>
-                Common tasks and shortcuts
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Button asChild className="w-full justify-start" variant="outline">
-                <a href="/products/create">
-                  <Package className="mr-2 h-4 w-4" />
-                  Create New Product
-                </a>
-              </Button>
-              <Button asChild className="w-full justify-start" variant="outline">
-                <a href="/products">
-                  <TrendingUp className="mr-2 h-4 w-4" />
-                  View All Products
-                </a>
-              </Button>
-              <Button asChild className="w-full justify-start" variant="outline">
-                <a href="/users">
-                  <Users className="mr-2 h-4 w-4" />
-                  Manage Users
-                </a>
-              </Button>
-              <Button asChild className="w-full justify-start" variant="outline">
-                <a href="/system/health">
-                  <Activity className="mr-2 h-4 w-4" />
-                  System Health
-                </a>
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">
+                        {activity.action}
+                      </p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
+                        {activity.item}
+                      </p>
+                    </div>
+                    <div className="flex-shrink-0 text-sm text-gray-500 dark:text-gray-400">
+                      {activity.time}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </AdminLayout>
   );
