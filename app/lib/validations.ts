@@ -20,7 +20,7 @@ export const productSchema = z.object({
   price: z
     .number()
     .min(0.01, 'Price must be greater than 0')
-    .max(10000, 'Price cannot exceed $10,000'),
+    .max(10000, 'Price cannot exceed ₹10,000'),
   category: z
     .enum(['Photo Magnets', 'Fridge Magnets', 'Retro Prints'], {
       message: 'Please select a category',
